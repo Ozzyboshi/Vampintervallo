@@ -1,0 +1,10 @@
+Store your image (and all output images that we are going to do into images subfolder)
+Load image into GIMP
+Resize image to 320X256
+Set color depth to 32
+Export setting output to raw RGB
+Export setting output to PNG
+Check final size is of raw image is 81920 bytes
+extract copperlist with extract_palette.py places under pytools directory
+python3 extract_palette.py /mnt/ramdisk/Arena-XE3F2406a.png > /mnt/ramdisk/Arena-XE3F2406a.col
+copy /mnt/ramdisk/Arena-XE3F2406a.col into images subfolder and include int the intervallo.s file
