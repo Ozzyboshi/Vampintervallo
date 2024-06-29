@@ -24,9 +24,17 @@ AUDIO_VOL EQU $0040
 	movec ccc,d3
 	load d3,e20
 
-	jsr PIXELINTERPOLATION
+	jsr PIXELINTERPOLATION ; 5.431785
 	movec ccc,d3
 	load d3,e21
+
+	load e20,d3
+	load e21,d4
+
+	sub.l d3,d4
+	bpl noinvert
+	neg.l d4
+noinvert:
 
 
 	;include	"daworkbench.s"	; togliere il ; prima di salvare con "WO"
@@ -302,6 +310,13 @@ PIXELINTERPOLATION:
 
 	;lea               320*256+2(a1),a4
 	
+	; now i must interpolate to find the new color
+	move.w 				IMAGE_PHASE,d3
+	ext.l				d3
+	fmove.w 			d3,fp2 ; load current phase
+	;fmove.w #IMAGE_TRANSITION_MAX_PHASES/2,fp2; da rimuovere
+	fmove.w 				#IMAGE_TRANSITION_MAX_PHASES,fp1 ; load total amount of phases
+	
 	lea CHUNKY_IMAGE,a5
 	; recap, at this point i have
 	; a0 - pointer to old image
@@ -321,12 +336,7 @@ chunkyremaploop: ; for each pixel
 	ext.w d1
 	move.w 0(a4,d1.w),d1 ; Now d1 holds the destination color
 
-	; now i must interpolate to find the new color
-	move.w 				IMAGE_PHASE,d3
-	ext.l				d3
-	fmove.w 			d3,fp2 ; load current phase
-	;fmove.w #IMAGE_TRANSITION_MAX_PHASES/2,fp2; da rimuovere
-	fmove.w 				#IMAGE_TRANSITION_MAX_PHASES,fp1 ; load total amount of phases
+	
   	jsr 				COPFADEFPU
 
 	; d0 now holds the color i am looking for
