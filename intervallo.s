@@ -24,7 +24,7 @@ AUDIO_VOL EQU $0040
 	movec ccc,d3
 	load d3,e20
 
-	jsr PIXELINTERPOLATION ; 5.431785
+	jsr LOAD_NEXT_IMAGE ;2.17
 	movec ccc,d3
 	load d3,e21
 
@@ -157,6 +157,28 @@ LOAD_IMAGE:
 	MEMCPY16			a0,COLORS,32*4/16 				; copy copperlist color section
 	rts
 
+WRITE_COLOR MACRO
+	move.l 				(a0)+,d0 ; start color taken from old image (full copperlist)
+  	move.l 				(a1)+,d1 ; end color taken from new image (full copperlist)
+
+	; clean upper part
+	andi.l 				#$0FFF,d0
+	andi.l 				#$0FFF,d1
+
+  	fmove 				#IMAGE_TRANSITION_MAX_PHASES,fp1 ; load total amount of phases
+
+  	move.w 				IMAGE_PHASE,d3
+	ext.l				d3
+	fmove.w 				d3,fp2 ; load current phase
+  	jsr 				COPFADEFPU
+
+	move.w				d0,(a3) ; write color into copperlist
+	addq				#4,a3
+
+	vperm 				\1,\2,d0,\2
+	
+	ENDM
+
 LOAD_NEXT_IMAGE:
 	cmpi.w				#IMAGE_TRANSITION_MAX_PHASES+1,IMAGE_PHASE
 	beq.w 				noresetimage
@@ -167,59 +189,54 @@ LOAD_NEXT_IMAGE:
 	adda.l				#81920,a1
 
 	lea					COLORS+2,a3
+	WRITE_COLOR			#$012345EF,e10 ; color 0
+	WRITE_COLOR			#$0123EF67,e10 ; color 1
+	WRITE_COLOR			#$01EF4567,e10 ; color 2
+	WRITE_COLOR			#$EF234567,e10 ; color 3
 
-	; cycle for each color
-	moveq				#32-1,d7
-nextimagecolorloop:
+	WRITE_COLOR			#$012345EF,e11 ; color 4
+	WRITE_COLOR			#$0123EF67,e11 ; color 5
+	WRITE_COLOR			#$01EF4567,e11 ; color 6
+	WRITE_COLOR			#$EF234567,e11 ; color 7
 
-	move.l 				(a0)+,d0 ; start color taken from old image (full copperlist)
-  	move.l 				(a1)+,d1 ; end color taken from new image (full copperlist)
+	WRITE_COLOR			#$012345EF,e12 ; color 8
+	WRITE_COLOR			#$0123EF67,e12 ; color 9
+	WRITE_COLOR			#$01EF4567,e12 ; color 10
+	WRITE_COLOR			#$EF234567,e12 ; color 11
 
-	; clean upper part
-	andi.l 				#$0FFF,d0
-	andi.l 				#$0FFF,d1
+	WRITE_COLOR			#$012345EF,e13 ; color 12
+	WRITE_COLOR			#$0123EF67,e13 ; color 13
+	WRITE_COLOR			#$01EF4567,e13 ; color 14
+	WRITE_COLOR			#$EF234567,e13 ; color 15
 
-  	fmove 				#IMAGE_TRANSITION_MAX_PHASES,fp1 ; load total amount of phases
-	;fmove #1,fp2
+	WRITE_COLOR			#$012345EF,e14 ; color 16
+	WRITE_COLOR			#$0123EF67,e14 ; color 17
+	WRITE_COLOR			#$01EF4567,e14 ; color 18
+	WRITE_COLOR			#$EF234567,e14 ; color 19
 
-  	move.w 				IMAGE_PHASE,d3
-	ext.l				d3
-	fmove.w 				d3,fp2 ; load current phase
-	movem.l 			d7,-(sp)
-  	jsr 				COPFADEFPU
-	movem.l 			(sp)+,d7
-	;move.w #$211,d0
-	
-	;	cmp.w #$211,d0
-	;;	beq ok;
-	;;	move.w #$FFF,d0
-	;	bra.s scrivi
-;ok
-;	move.w #$0F0,d0
-;scrivi
+	WRITE_COLOR			#$012345EF,e15 ; color 20
+	WRITE_COLOR			#$0123EF67,e15 ; color 21
+	WRITE_COLOR			#$01EF4567,e15 ; color 22
+	WRITE_COLOR			#$EF234567,e15 ; color 23
 
-	move.w				d0,(a3) ; write color into copperlist
-	addq				#4,a3
+	WRITE_COLOR			#$012345EF,e16 ; color 24
+	WRITE_COLOR			#$0123EF67,e16 ; color 25
+	WRITE_COLOR			#$01EF4567,e16 ; color 26
+	WRITE_COLOR			#$EF234567,e16 ; color 27
 
-	dbra				d7,nextimagecolorloop
+	WRITE_COLOR			#$012345EF,e17 ; color 28
+	WRITE_COLOR			#$0123EF67,e17 ; color 29
+	WRITE_COLOR			#$01EF4567,e17 ; color 30
+	WRITE_COLOR			#$EF234567,e17 ; color 31
+
+
 
 	jsr					PIXELINTERPOLATION
 
 
 	; now increment PHASE
 	add.w				#1,IMAGE_PHASE
-	;rts ; remove this to resore from test
-	IFD LOL
-	jsr					GET_IMAGES_ADDR
-	move.l 				a1,a0
-	MEMCPY16			a0,CHUNKY_IMAGE,81920/16 		; copy image to chunky area
-	ENDC
-	;MEMCPY16			a1,COLORS,32*4/16 				; copy copperlist color section
 
-	;move.l				a0,currentImage 				; now a0 points to the next image
-	;cmpa.l 				#IMAGES_END,a0
-	;bne.s 				noresetimage
-	;move.l 				#IMAGES,currentImage
 noresetimage:
 	rts
 
@@ -291,6 +308,23 @@ POINTINCOPPERLIST_FUNCT:
   	POINTINCOPPERLIST
   	rts
 
+READ_COLOR_FROM_COPPERLIST MACRO
+	;move.l (a0)+,d6
+	vperm \2,\3,\3,d6
+	RGBTOREGS d6,d0,d1,d2
+	load e0,d6
+	RGBTOREGS d6,d3,d4,d5
+	jsr COLDIST
+	fcmp fp0,fp6
+	fmove FPSR,d6
+	btst #31-4,d6
+	bne.s vampire_fpu9_upd_max\1
+	fmove fp0,fp6
+	;moveq #\1,d7
+	LOAD #\1,E18
+vampire_fpu9_upd_max\1:
+	ENDM
+
 PIXELINTERPOLATION:
 	move.w #$F00,$dff180
 
@@ -298,25 +332,25 @@ PIXELINTERPOLATION:
 	; ---------------- CODE TO TEST !!!! -----------------------------
 	;now remap all chunky data according to the new copperlist - START!!!!!!
 	jsr					GET_IMAGES_ADDR ; after this a0 = current image and a1 next
-	
+
 	; now we have to figure out the start color (just one pixel for now)
 	;move.l				a0,a3
 	;move.l				a1,a4
 	;adda.l #320*256+2,a3
 	;adda.l #320*256+2,a4
 	;lea               320*256+2(a0),a3
-	lea (320*256+2.l,a0),a3
-	lea (320*256+2.l,a1),a4
+	lea 				(320*256+2.l,a0),a3
+	lea 				(320*256+2.l,a1),a4
 
 	;lea               320*256+2(a1),a4
-	
+
 	; now i must interpolate to find the new color
 	move.w 				IMAGE_PHASE,d3
 	ext.l				d3
 	fmove.w 			d3,fp2 ; load current phase
 	;fmove.w #IMAGE_TRANSITION_MAX_PHASES/2,fp2; da rimuovere
-	fmove.w 				#IMAGE_TRANSITION_MAX_PHASES,fp1 ; load total amount of phases
-	
+	fmove.w 			#IMAGE_TRANSITION_MAX_PHASES,fp1 ; load total amount of phases
+
 	lea CHUNKY_IMAGE,a5
 	; recap, at this point i have
 	; a0 - pointer to old image
@@ -343,31 +377,49 @@ chunkyremaploop: ; for each pixel
 	; find the index of the new color
 	movem.l d1-d7/a0-a1,-(sp)
 	load d0,e0
-	moveq #32-1,d7
 	fmove #455,fp6
-	lea COLORS,a0
-vampire_fpu9_loop:
-	move.l (a0)+,d6
-	RGBTOREGS d6,d0,d1,d2
-	load e0,d6
-	RGBTOREGS d6,d3,d4,d5
-	jsr COLDIST
-	fcmp fp0,fp6
-	fmove FPSR,d6
-	btst #31-4,d6
-	bne.s vampire_fpu9_upd_max
-	fmove fp0,fp6
-	move.w d7,d6
-	swap d7
-	move.w d6,d7
-	swap d7
-vampire_fpu9_upd_max:
-	dbra d7,vampire_fpu9_loop
-	swap d7
-	sub.w #32-1,d7
-	neg.w d7 ; d7 now has the new index
-	
-	move.b d7,(a5)+
+
+	READ_COLOR_FROM_COPPERLIST 0,#$67676767,e10 ; check color 0
+	READ_COLOR_FROM_COPPERLIST 1,#$45454545,e10 ; check color 1
+	READ_COLOR_FROM_COPPERLIST 2,#$23232323,e10 ; check color 2
+	READ_COLOR_FROM_COPPERLIST 3,#$01010101,e10 ; check color 3
+
+	READ_COLOR_FROM_COPPERLIST 4,#$67676767,e11 ; check color 4
+	READ_COLOR_FROM_COPPERLIST 5,#$45454545,e11 ; check color 5
+	READ_COLOR_FROM_COPPERLIST 6,#$23232323,e11 ; check color 6
+	READ_COLOR_FROM_COPPERLIST 7,#$01010101,e11 ; check color 7
+
+	READ_COLOR_FROM_COPPERLIST 8,#$67676767,e12 ; check color 8
+	READ_COLOR_FROM_COPPERLIST 9,#$45454545,e12 ; check color 9
+	READ_COLOR_FROM_COPPERLIST 10,#$23232323,e12 ; check color 10
+	READ_COLOR_FROM_COPPERLIST 11,#$01010101,e12 ; check color 11
+
+	READ_COLOR_FROM_COPPERLIST 12,#$67676767,e13 ; check color 12
+	READ_COLOR_FROM_COPPERLIST 13,#$45454545,e13 ; check color 13
+	READ_COLOR_FROM_COPPERLIST 14,#$23232323,e13 ; check color 14
+	READ_COLOR_FROM_COPPERLIST 15,#$01010101,e13 ; check color 15
+
+	READ_COLOR_FROM_COPPERLIST 16,#$67676767,e14 ; check color 16
+	READ_COLOR_FROM_COPPERLIST 17,#$45454545,e14 ; check color 17
+	READ_COLOR_FROM_COPPERLIST 18,#$23232323,e14 ; check color 18
+	READ_COLOR_FROM_COPPERLIST 19,#$01010101,e14 ; check color 19
+
+	READ_COLOR_FROM_COPPERLIST 20,#$67676767,e15 ; check color 20
+	READ_COLOR_FROM_COPPERLIST 21,#$45454545,e15 ; check color 21
+	READ_COLOR_FROM_COPPERLIST 22,#$23232323,e15 ; check color 22
+	READ_COLOR_FROM_COPPERLIST 23,#$01010101,e15 ; check color 23
+
+	READ_COLOR_FROM_COPPERLIST 24,#$67676767,e16 ; check color 24
+	READ_COLOR_FROM_COPPERLIST 25,#$45454545,e16 ; check color 25
+	READ_COLOR_FROM_COPPERLIST 26,#$23232323,e16 ; check color 26
+	READ_COLOR_FROM_COPPERLIST 27,#$01010101,e16 ; check color 27
+
+	READ_COLOR_FROM_COPPERLIST 28,#$67676767,e17 ; check color 28
+	READ_COLOR_FROM_COPPERLIST 29,#$45454545,e17 ; check color 29
+	READ_COLOR_FROM_COPPERLIST 30,#$23232323,e17 ; check color 30
+	READ_COLOR_FROM_COPPERLIST 31,#$01010101,e17 ; check color 31
+
+	move.b e18,(a5)+ ; write new chunky index
 	movem.l (sp)+,d1-d7/a0-a1
 	movem.l 			(sp)+,d7
 	dbra.l d7,chunkyremaploop
