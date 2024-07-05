@@ -21,6 +21,7 @@ SWAP_BPL MACRO
 
 AUDIO_VOL EQU $0040
 
+	IFD LOL
 	movec ccc,d3
 	load d3,e20
 
@@ -35,6 +36,7 @@ AUDIO_VOL EQU $0040
 	bpl noinvert
 	neg.l d4
 noinvert:
+	ENDC
 
 
 	;include	"daworkbench.s"	; togliere il ; prima di salvare con "WO"
@@ -309,7 +311,6 @@ POINTINCOPPERLIST_FUNCT:
   	rts
 
 READ_COLOR_FROM_COPPERLIST MACRO
-	;move.l (a0)+,d6
 	vperm \2,\3,\3,d6
 	RGBTOREGS d6,d0,d1,d2
 	load e0,d6
@@ -320,7 +321,6 @@ READ_COLOR_FROM_COPPERLIST MACRO
 	btst #31-4,d6
 	bne.s vampire_fpu9_upd_max\1
 	fmove fp0,fp6
-	;moveq #\1,d7
 	LOAD #\1,E18
 vampire_fpu9_upd_max\1:
 	ENDM
@@ -345,9 +345,7 @@ PIXELINTERPOLATION:
 	;lea               320*256+2(a1),a4
 
 	; now i must interpolate to find the new color
-	move.w 				IMAGE_PHASE,d3
-	ext.l				d3
-	fmove.w 			d3,fp2 ; load current phase
+	fmove.w 			IMAGE_PHASE,fp2 ; load current phase
 	;fmove.w #IMAGE_TRANSITION_MAX_PHASES/2,fp2; da rimuovere
 	fmove.w 			#IMAGE_TRANSITION_MAX_PHASES,fp1 ; load total amount of phases
 
@@ -375,7 +373,7 @@ chunkyremaploop: ; for each pixel
 
 	; d0 now holds the color i am looking for
 	; find the index of the new color
-	movem.l d1-d7/a0-a1,-(sp)
+	;movem.l d1-d7/a0-a1,-(sp)
 	load d0,e0
 	fmove #455,fp6
 
@@ -420,7 +418,7 @@ chunkyremaploop: ; for each pixel
 	READ_COLOR_FROM_COPPERLIST 31,#$01010101,e17 ; check color 31
 
 	move.b e18,(a5)+ ; write new chunky index
-	movem.l (sp)+,d1-d7/a0-a1
+	;movem.l (sp)+,d1-d7/a0-a1
 	movem.l 			(sp)+,d7
 	dbra.l d7,chunkyremaploop
 	;movem.l (sp)+,d0-d7/a0-a6
