@@ -169,9 +169,7 @@ WRITE_COLOR MACRO
 
   	fmove 				#IMAGE_TRANSITION_MAX_PHASES,fp1 ; load total amount of phases
 
-  	move.w 				IMAGE_PHASE,d3
-	ext.l				d3
-	fmove.w 				d3,fp2 ; load current phase
+	fmove.w 			IMAGE_PHASE,fp2 ; load current phase
   	jsr 				COPFADEFPU
 
 	move.w				d0,(a3) ; write color into copperlist
@@ -231,10 +229,7 @@ LOAD_NEXT_IMAGE:
 	WRITE_COLOR			#$01EF4567,e17 ; color 30
 	WRITE_COLOR			#$EF234567,e17 ; color 31
 
-
-
 	jsr					PIXELINTERPOLATION
-
 
 	; now increment PHASE
 	add.w				#1,IMAGE_PHASE
@@ -356,19 +351,15 @@ PIXELINTERPOLATION:
 	; a3 - pointer to copperlist colors
 		move.l 				#320*256-1,d7
 chunkyremaploop: ; for each pixel
-	movem.l 			d7,-(sp) ; preserve counter
 	
 	move.b (a0)+,d0
-	lsl.b #2,d0
 	ext.w d0
-	move.w 0(a3,d0.w),d0 ; Now d0 holds the source color
+	move.w 0(a3,d0.w*4),d0 ; Now d0 holds the source color
 
 	move.b (a1)+,d1
-	lsl.b #2,d1
 	ext.w d1
-	move.w 0(a4,d1.w),d1 ; Now d1 holds the destination color
+	move.w 0(a4,d1.w*4),d1 ; Now d1 holds the destination color
 
-	
   	jsr 				COPFADEFPU
 
 	; d0 now holds the color i am looking for
@@ -418,10 +409,7 @@ chunkyremaploop: ; for each pixel
 	READ_COLOR_FROM_COPPERLIST 31,#$01010101,e17 ; check color 31
 
 	move.b e18,(a5)+ ; write new chunky index
-	;movem.l (sp)+,d1-d7/a0-a1
-	movem.l 			(sp)+,d7
 	dbra.l d7,chunkyremaploop
-	;movem.l (sp)+,d0-d7/a0-a6
 	rts
 	; ---------------- CODE TO TEST !!!! -----------------------------
 
