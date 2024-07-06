@@ -22,20 +22,30 @@ SWAP_BPL MACRO
 AUDIO_VOL EQU $0040
 
 	IFD LOL
-	movec ccc,d3
-	load d3,e20
-
+	movec ccc,d0
+	movec iep1,d1
+	movec iep2,d2
+	movem.l d0/d1/d2,-(sp)
 	jsr LOAD_NEXT_IMAGE ;2.17
+	movem.l (sp)+,d0/d1/d2
 	movec ccc,d3
-	load d3,e21
+	movec iep1,d4
+	movec iep2,d5
 
-	load e20,d3
-	load e21,d4
+	sub.l d0,d3
+	bpl ccclabel
+	neg.l d3
+ccclabel
 
-	sub.l d3,d4
-	bpl noinvert
+	sub.l d1,d4
+	bpl iep1label
 	neg.l d4
-noinvert:
+iep1label
+
+	sub.l d2,d5
+	bpl iep2label
+	neg.l d5
+iep2label
 	ENDC
 
 
@@ -329,19 +339,12 @@ PIXELINTERPOLATION:
 	jsr					GET_IMAGES_ADDR ; after this a0 = current image and a1 next
 
 	; now we have to figure out the start color (just one pixel for now)
-	;move.l				a0,a3
-	;move.l				a1,a4
-	;adda.l #320*256+2,a3
-	;adda.l #320*256+2,a4
-	;lea               320*256+2(a0),a3
+
 	lea 				(320*256+2.l,a0),a3
 	lea 				(320*256+2.l,a1),a4
 
-	;lea               320*256+2(a1),a4
-
 	; now i must interpolate to find the new color
 	fmove.w 			IMAGE_PHASE,fp2 ; load current phase
-	;fmove.w #IMAGE_TRANSITION_MAX_PHASES/2,fp2; da rimuovere
 	fmove.w 			#IMAGE_TRANSITION_MAX_PHASES,fp1 ; load total amount of phases
 
 	lea CHUNKY_IMAGE,a5
@@ -349,7 +352,7 @@ PIXELINTERPOLATION:
 	; a0 - pointer to old image
 	; a1 - pointer t new image
 	; a3 - pointer to copperlist colors
-		move.l 				#320*256-1,d7
+	move.l 				#320*256-1,d7
 chunkyremaploop: ; for each pixel
 	
 	move.b (a0)+,d0
