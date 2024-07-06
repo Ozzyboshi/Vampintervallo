@@ -59,9 +59,19 @@ def main():
 
 
     for i, color in enumerate(colors):
-        #colorcode = hex_sum(colorcode,colorincrement)
-        print(f"dc.w ${hex(colorcode)[2:]},${color} ; Color {i}")
+        color = convert_color_4bit_to_8bit(color)
+        print(f"    dc.w ${color} ; Color {i} - ${hex(colorcode)[2:]}")
         colorcode = colorcode + 2
+
+def convert_color_4bit_to_8bit(color):
+    # Assicurati che la stringa sia lunga 3 caratteri (una per ogni componente RGB)
+    if len(color) != 3:
+        raise ValueError("La stringa del colore deve contenere esattamente 3 caratteri.")
+    
+    # Aggiungi uno zero prima di ogni carattere
+    converted_color = ''.join(['0' + c for c in color])
+    
+    return converted_color
 
 if __name__ == "__main__":
     main()

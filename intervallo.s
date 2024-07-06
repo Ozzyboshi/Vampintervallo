@@ -21,7 +21,7 @@ SWAP_BPL MACRO
 
 AUDIO_VOL EQU $0040
 
-	IFND LOL
+	IFD LOL
 	movec ccc,d0
 	movec iep1,d1
 	movec iep2,d2
@@ -61,8 +61,7 @@ WaitDisk	EQU	30
 	include "AProcessing/libs/precalc/rgbto0r0b0g.s"
 	include "AProcessing/libs/precalc/rgbtoregs.s"
 	include "AProcessing/libs/rasterizers/globaloptions.s"
-	include "AProcessing/libs/vampfpu/copfade.s"
-	include "AProcessing/libs/vampfpu/coldistance.s"
+	include "AProcessing/libs/vampfpu/copfade2.s"
 	include "AProcessing/libs/vectors/sqrt_q10_6_lookup_table.i"
 
 START:
@@ -171,22 +170,17 @@ LOAD_IMAGE:
 	rts
 
 WRITE_COLOR MACRO
-	move.l 				(a0)+,d0 ; start color taken from old image (full copperlist)
-  	move.l 				(a1)+,d1 ; end color taken from new image (full copperlist)
-
-	; clean upper part
-	andi.l 				#$0FFF,d0
-	andi.l 				#$0FFF,d1
+	move.l 				(a0)+,d0 ; start color taken from old image
+  	move.l 				(a1)+,d1 ; end color taken from new image
 
   	fmove 				#IMAGE_TRANSITION_MAX_PHASES,fp1 ; load total amount of phases
-
 	fmove.w 			IMAGE_PHASE,fp2 ; load current phase
-  	jsr 				COPFADEFPU
+  	jsr 				COPFADEFPU2
 
 	move.w				d0,(a3) ; write color into copperlist
 	addq				#4,a3
 
-	vperm 				\1,\2,d0,\2
+	vperm 				\1,\2,e23,\2
 	
 	ENDM
 
@@ -200,45 +194,45 @@ LOAD_NEXT_IMAGE:
 	adda.l				#81920,a1
 
 	lea					COLORS+2,a3
-	WRITE_COLOR			#$012345EF,e10 ; color 0
-	WRITE_COLOR			#$0123EF67,e10 ; color 1
-	WRITE_COLOR			#$01EF4567,e10 ; color 2
-	WRITE_COLOR			#$EF234567,e10 ; color 3
+	WRITE_COLOR			#$0123CDEF,e0 ; color 0
+	WRITE_COLOR			#$CDEF4567,e0 ; color 1
+	WRITE_COLOR			#$0123CDEF,e1 ; color 2
+	WRITE_COLOR			#$CDEF4567,e1 ; color 3
 
-	WRITE_COLOR			#$012345EF,e11 ; color 4
-	WRITE_COLOR			#$0123EF67,e11 ; color 5
-	WRITE_COLOR			#$01EF4567,e11 ; color 6
-	WRITE_COLOR			#$EF234567,e11 ; color 7
+	WRITE_COLOR			#$0123CDEF,e2 ; color 4
+	WRITE_COLOR			#$CDEF4567,e2 ; color 5
+	WRITE_COLOR			#$0123CDEF,e3 ; color 6
+	WRITE_COLOR			#$CDEF4567,e3 ; color 7
 
-	WRITE_COLOR			#$012345EF,e12 ; color 8
-	WRITE_COLOR			#$0123EF67,e12 ; color 9
-	WRITE_COLOR			#$01EF4567,e12 ; color 10
-	WRITE_COLOR			#$EF234567,e12 ; color 11
+	WRITE_COLOR			#$0123CDEF,e4 ; color 8
+	WRITE_COLOR			#$CDEF4567,e4 ; color 9
+	WRITE_COLOR			#$0123CDEF,e5 ; color 10
+	WRITE_COLOR			#$CDEF4567,e5 ; color 11
 
-	WRITE_COLOR			#$012345EF,e13 ; color 12
-	WRITE_COLOR			#$0123EF67,e13 ; color 13
-	WRITE_COLOR			#$01EF4567,e13 ; color 14
-	WRITE_COLOR			#$EF234567,e13 ; color 15
+	WRITE_COLOR			#$0123CDEF,e6 ; color 12
+	WRITE_COLOR			#$CDEF4567,e6 ; color 13
+	WRITE_COLOR			#$0123CDEF,e7 ; color 14
+	WRITE_COLOR			#$CDEF4567,e7 ; color 15
 
-	WRITE_COLOR			#$012345EF,e14 ; color 16
-	WRITE_COLOR			#$0123EF67,e14 ; color 17
-	WRITE_COLOR			#$01EF4567,e14 ; color 18
-	WRITE_COLOR			#$EF234567,e14 ; color 19
+	WRITE_COLOR			#$0123CDEF,e8 ; color 16
+	WRITE_COLOR			#$CDEF4567,e8 ; color 17
+	WRITE_COLOR			#$0123CDEF,e9 ; color 18
+	WRITE_COLOR			#$CDEF4567,e9 ; color 19
 
-	WRITE_COLOR			#$012345EF,e15 ; color 20
-	WRITE_COLOR			#$0123EF67,e15 ; color 21
-	WRITE_COLOR			#$01EF4567,e15 ; color 22
-	WRITE_COLOR			#$EF234567,e15 ; color 23
+	WRITE_COLOR			#$0123CDEF,e10 ; color 20
+	WRITE_COLOR			#$CDEF4567,e10 ; color 21
+	WRITE_COLOR			#$0123CDEF,e11 ; color 22
+	WRITE_COLOR			#$CDEF4567,e11 ; color 23
 
-	WRITE_COLOR			#$012345EF,e16 ; color 24
-	WRITE_COLOR			#$0123EF67,e16 ; color 25
-	WRITE_COLOR			#$01EF4567,e16 ; color 26
-	WRITE_COLOR			#$EF234567,e16 ; color 27
+	WRITE_COLOR			#$0123CDEF,e12 ; color 24
+	WRITE_COLOR			#$CDEF4567,e12 ; color 25
+	WRITE_COLOR			#$0123CDEF,e13 ; color 26
+	WRITE_COLOR			#$CDEF4567,e13 ; color 27
 
-	WRITE_COLOR			#$012345EF,e17 ; color 28
-	WRITE_COLOR			#$0123EF67,e17 ; color 29
-	WRITE_COLOR			#$01EF4567,e17 ; color 30
-	WRITE_COLOR			#$EF234567,e17 ; color 31
+	WRITE_COLOR			#$0123CDEF,e14 ; color 28
+	WRITE_COLOR			#$CDEF4567,e14 ; color 29
+	WRITE_COLOR			#$0123CDEF,e15 ; color 30
+	WRITE_COLOR			#$CDEF4567,e15 ; color 31
 
 	jsr					PIXELINTERPOLATION
 
@@ -317,33 +311,36 @@ POINTINCOPPERLIST_FUNCT:
   	rts
 
 READ_COLOR_FROM_COPPERLIST MACRO
-	vperm \2,\3,\3,d6
-	;RGBTOREGS d6,d0,d1,d2
-	;load e0,d6
-	;RGBTOREGS d6,d3,d4,d5
-	;jsr COLDIST
+	; here d0 holds the color we want to find inside the copperlist
+	vperm \2,\3,\3,d6 ; d6 holds the color inside the copperlist (copy on eX regs)
 
 	lea SQRT_TABLE_Q10_6,a6
-    psubw d6,e0,E1
-    pmull e1,e1,e1
-    load e1,e2
-    load e1,e3
-    lsrq #16,e2,e2
-    lsrq #32,e3,e3
-    paddw e1,e2,e1
-    paddw e1,e3,d1
+    psubw d6,e23,e16
+    pmull e16,e16,e16
+
+	; alignment for final addition start
+	vperm #$00000007,e16,e17,d1
+	vperm #$00000006,e16,e17,e17
+	vperm #$00000005,e16,e17,e19
+	; alignment for final addition end
+    paddw d1,e17,d1
+    paddw d1,e19,d1
 	;fmove.w d1,fp0
 
     ;fsqrt fp0,fp0
-    lslq #6,e1,d1
-    move.w 0(a6,d1.w*2),e1
+    lsl.w #6,d1
+    move.w 0(a6,d1.w*2),e16
 
 
-	fcmp fp0,fp6
-	fmove FPSR,d6
-	btst #31-4,d6
-	bne.s vampire_fpu9_upd_max\1
-	fmove fp0,fp6
+	;fcmp fp0,fp6
+	;fmove FPSR,d6
+	;btst #31-4,d6
+	
+	cmp.w e16,e22 
+	bcs.s vampire_fpu9_upd_max\1
+	;fmove fp0,fp6
+	; if we are here it means we found a shorter distance
+	load e16,e22
 	LOAD #\1,E18
 vampire_fpu9_upd_max\1:
 	ENDM
@@ -358,8 +355,8 @@ PIXELINTERPOLATION:
 
 	; now we have to figure out the start color (just one pixel for now)
 
-	lea 				(320*256+2.l,a0),a3
-	lea 				(320*256+2.l,a1),a4
+	lea 				(320*256+0.l,a0),a3
+	lea 				(320*256+0.l,a1),a4
 
 	; now i must interpolate to find the new color
 	fmove.w 			IMAGE_PHASE,fp2 ; load current phase
@@ -375,59 +372,60 @@ chunkyremaploop: ; for each pixel
 	
 	move.b (a0)+,d0
 	ext.w d0
-	move.w 0(a3,d0.w*4),d0 ; Now d0 holds the source color
+	move.l 0(a3,d0.w*4),d0 ; Now d0 holds the source color
 
 	move.b (a1)+,d1
 	ext.w d1
-	move.w 0(a4,d1.w*4),d1 ; Now d1 holds the destination color
+	move.l 0(a4,d1.w*4),d1 ; Now d1 holds the destination color
 
-  	jsr 				COPFADEFPU
+  	jsr 				COPFADEFPU2
 
 	; d0 now holds the color i am looking for
 	; find the index of the new color
 	;movem.l d1-d7/a0-a1,-(sp)
-	load d0,e0
-	fmove #455,fp6
+	;load d0,e0
+	;fmove #455,fp6
+	move.w #$FFFF,e22
 
-	READ_COLOR_FROM_COPPERLIST 0,#$67676767,e10 ; check color 0
-	READ_COLOR_FROM_COPPERLIST 1,#$45454545,e10 ; check color 1
-	READ_COLOR_FROM_COPPERLIST 2,#$23232323,e10 ; check color 2
-	READ_COLOR_FROM_COPPERLIST 3,#$01010101,e10 ; check color 3
+	READ_COLOR_FROM_COPPERLIST 0,#$00000567,e0 ; check color 0
+	READ_COLOR_FROM_COPPERLIST 1,#$00000123,e0 ; check color 1
+	READ_COLOR_FROM_COPPERLIST 2,#$00000567,e1 ; check color 2
+	READ_COLOR_FROM_COPPERLIST 3,#$00000123,e1 ; check color 3
 
-	READ_COLOR_FROM_COPPERLIST 4,#$67676767,e11 ; check color 4
-	READ_COLOR_FROM_COPPERLIST 5,#$45454545,e11 ; check color 5
-	READ_COLOR_FROM_COPPERLIST 6,#$23232323,e11 ; check color 6
-	READ_COLOR_FROM_COPPERLIST 7,#$01010101,e11 ; check color 7
+	READ_COLOR_FROM_COPPERLIST 4,#$00000567,e2 ; check color 4
+	READ_COLOR_FROM_COPPERLIST 5,#$00000123,e2 ; check color 5
+	READ_COLOR_FROM_COPPERLIST 6,#$00000567,e3 ; check color 6
+	READ_COLOR_FROM_COPPERLIST 7,#$00000123,e3 ; check color 7
 
-	READ_COLOR_FROM_COPPERLIST 8,#$67676767,e12 ; check color 8
-	READ_COLOR_FROM_COPPERLIST 9,#$45454545,e12 ; check color 9
-	READ_COLOR_FROM_COPPERLIST 10,#$23232323,e12 ; check color 10
-	READ_COLOR_FROM_COPPERLIST 11,#$01010101,e12 ; check color 11
+	READ_COLOR_FROM_COPPERLIST 8,#$00000567,e4 ; check color 8
+	READ_COLOR_FROM_COPPERLIST 9,#$00000123,e4 ; check color 9
+	READ_COLOR_FROM_COPPERLIST 10,#$00000567,e5 ; check color 10
+	READ_COLOR_FROM_COPPERLIST 11,#$00000123,e5 ; check color 11
 
-	READ_COLOR_FROM_COPPERLIST 12,#$67676767,e13 ; check color 12
-	READ_COLOR_FROM_COPPERLIST 13,#$45454545,e13 ; check color 13
-	READ_COLOR_FROM_COPPERLIST 14,#$23232323,e13 ; check color 14
-	READ_COLOR_FROM_COPPERLIST 15,#$01010101,e13 ; check color 15
+	READ_COLOR_FROM_COPPERLIST 12,#$00000567,e6 ; check color 12
+	READ_COLOR_FROM_COPPERLIST 13,#$00000123,e6 ; check color 13
+	READ_COLOR_FROM_COPPERLIST 14,#$00000567,e7 ; check color 14
+	READ_COLOR_FROM_COPPERLIST 15,#$00000123,e7 ; check color 15
 
-	READ_COLOR_FROM_COPPERLIST 16,#$67676767,e14 ; check color 16
-	READ_COLOR_FROM_COPPERLIST 17,#$45454545,e14 ; check color 17
-	READ_COLOR_FROM_COPPERLIST 18,#$23232323,e14 ; check color 18
-	READ_COLOR_FROM_COPPERLIST 19,#$01010101,e14 ; check color 19
+	READ_COLOR_FROM_COPPERLIST 16,#$00000567,e8 ; check color 16
+	READ_COLOR_FROM_COPPERLIST 17,#$00000123,e8 ; check color 17
+	READ_COLOR_FROM_COPPERLIST 18,#$00000567,e9 ; check color 18
+	READ_COLOR_FROM_COPPERLIST 19,#$00000123,e9 ; check color 19
 
-	READ_COLOR_FROM_COPPERLIST 20,#$67676767,e15 ; check color 20
-	READ_COLOR_FROM_COPPERLIST 21,#$45454545,e15 ; check color 21
-	READ_COLOR_FROM_COPPERLIST 22,#$23232323,e15 ; check color 22
-	READ_COLOR_FROM_COPPERLIST 23,#$01010101,e15 ; check color 23
+	READ_COLOR_FROM_COPPERLIST 20,#$00000567,e10 ; check color 20
+	READ_COLOR_FROM_COPPERLIST 21,#$00000123,e10 ; check color 21
+	READ_COLOR_FROM_COPPERLIST 22,#$00000567,e11 ; check color 22
+	READ_COLOR_FROM_COPPERLIST 23,#$00000123,e11 ; check color 23
 
-	READ_COLOR_FROM_COPPERLIST 24,#$67676767,e16 ; check color 24
-	READ_COLOR_FROM_COPPERLIST 25,#$45454545,e16 ; check color 25
-	READ_COLOR_FROM_COPPERLIST 26,#$23232323,e16 ; check color 26
-	READ_COLOR_FROM_COPPERLIST 27,#$01010101,e16 ; check color 27
+	READ_COLOR_FROM_COPPERLIST 24,#$00000567,e12 ; check color 24
+	READ_COLOR_FROM_COPPERLIST 25,#$00000123,e12 ; check color 25
+	READ_COLOR_FROM_COPPERLIST 26,#$00000567,e13 ; check color 26
+	READ_COLOR_FROM_COPPERLIST 27,#$00000123,e13 ; check color 27
 
-	READ_COLOR_FROM_COPPERLIST 28,#$67676767,e17 ; check color 28
-	READ_COLOR_FROM_COPPERLIST 29,#$45454545,e17 ; check color 29
-	READ_COLOR_FROM_COPPERLIST 30,#$23232323,e17 ; check color 30
-	READ_COLOR_FROM_COPPERLIST 31,#$01010101,e17 ; check color 31
+	READ_COLOR_FROM_COPPERLIST 28,#$00000567,e14 ; check color 28
+	READ_COLOR_FROM_COPPERLIST 29,#$00000123,e14 ; check color 29
+	READ_COLOR_FROM_COPPERLIST 30,#$00000567,e15 ; check color 30
+	READ_COLOR_FROM_COPPERLIST 31,#$00000123,e15 ; check color 31
 
 	move.b e18,(a5)+ ; write new chunky index
 	dbra.l d7,chunkyremaploop
@@ -466,9 +464,9 @@ currentImage:			  dc.l IMAGES : pointer to the current image
 IMAGES:
 PENNABILLI:
 						  incbin 				  "images/pennabilli.data" ; 320*256 indexed chunky image here
-						  include 			  	  "images/pennabilli.col" ; color copperlist here
+						  include 			  	  "images/pennabilli.col2" ; color copperlist here
 ARENA:					  incbin 				  "images/castigliondellago.data" ; arena image
-						  include				  "images/castigliondellago.col"
+						  include				  "images/castigliondellago.col2"
 
 IMAGES_END:
 
