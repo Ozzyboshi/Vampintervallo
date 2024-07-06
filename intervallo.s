@@ -21,7 +21,7 @@ SWAP_BPL MACRO
 
 AUDIO_VOL EQU $0040
 
-	IFD LOL
+	IFND LOL
 	movec ccc,d0
 	movec iep1,d1
 	movec iep2,d2
@@ -63,6 +63,7 @@ WaitDisk	EQU	30
 	include "AProcessing/libs/rasterizers/globaloptions.s"
 	include "AProcessing/libs/vampfpu/copfade.s"
 	include "AProcessing/libs/vampfpu/coldistance.s"
+	include "AProcessing/libs/vectors/sqrt_q10_6_lookup_table.i"
 
 START:
 
@@ -317,10 +318,27 @@ POINTINCOPPERLIST_FUNCT:
 
 READ_COLOR_FROM_COPPERLIST MACRO
 	vperm \2,\3,\3,d6
-	RGBTOREGS d6,d0,d1,d2
-	load e0,d6
-	RGBTOREGS d6,d3,d4,d5
-	jsr COLDIST
+	;RGBTOREGS d6,d0,d1,d2
+	;load e0,d6
+	;RGBTOREGS d6,d3,d4,d5
+	;jsr COLDIST
+
+	lea SQRT_TABLE_Q10_6,a6
+    psubw d6,e0,E1
+    pmull e1,e1,e1
+    load e1,e2
+    load e1,e3
+    lsrq #16,e2,e2
+    lsrq #32,e3,e3
+    paddw e1,e2,e1
+    paddw e1,e3,d1
+	;fmove.w d1,fp0
+
+    ;fsqrt fp0,fp0
+    lslq #6,e1,d1
+    move.w 0(a6,d1.w*2),e1
+
+
 	fcmp fp0,fp6
 	fmove FPSR,d6
 	btst #31-4,d6
