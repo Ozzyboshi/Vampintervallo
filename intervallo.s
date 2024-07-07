@@ -22,11 +22,22 @@ SWAP_BPL MACRO
 AUDIO_VOL EQU $0040
 
 	IFD LOL
+	;moveq #10,e9
+;label:
+	;nop
+	;dc.w  $714a
+	;dbra d1,label ; $74a (=bank) makes d1 into e9
+
 	movec ccc,d0
 	movec iep1,d1
 	movec iep2,d2
 	movem.l d0/d1/d2,-(sp)
 	jsr LOAD_NEXT_IMAGE ;2.17
+	move.l 				b0,a0
+	cmp.l				#CHUNKY_TRANSITION_END,a0
+	beq alessio
+	moveq  #0,d0
+alessio:
 	movem.l (sp)+,d0/d1/d2
 	movec ccc,d3
 	movec iep1,d4
@@ -126,14 +137,91 @@ SETAUD0PERIOD:
 
 	move.w 				#$C080,$dff09a ; intena, enable interrupt lvl 2
 
+	jsr 				CHUNKYTOPLANAR
+
 	; Start of gameloop
 mouse:
     cmpi.b  			#$ff,$dff006    ; Linea 255?
     bne.s   			mouse
 
-	;move.w #$F00,$dff180
+	; do we need to load transition phases??? 
+	; if transition write register (b0) is not equal to CHUNKY_TRANSITION_END
+	; it means yes!
+	cmp.l				#CHUNKY_TRANSITION_END,TRANS_IMG_WRITE_PTR
+	beq.s				noloadtransitions
+	jsr					LOAD_NEXT_IMAGE
+	move.l				#CHUNKY_TRANSITION_START,TRANS_IMG_READ_PTR
+	bra.w				Aspetta
+noloadtransitions:
 
-    jsr CHUNKYTOPLANAR
+	; Manage transition phase
+	; delay?
+	sub.w				#1,TRANSITION_COUNTER
+	bne.w				Aspetta
+	move.w				#TRANSITION_DELAY,TRANSITION_COUNTER
+	
+	; now we are really transitioning!!!!
+	move.l				TRANS_IMG_READ_PTR,a0
+	adda.l				#320*256,a0
+	cmp.l				#CHUNKY_TRANSITION_END,a0
+	beq.w				finishtransition
+
+	; copy colors!!!
+	move.l				TRANS_COL_READ_PTR,a2
+	lea					COLORS+2,a3
+	adda.l				#32*2,a2
+
+	; first 8 colors
+	move.w				(a2),(a3) 		; 0 - 0
+	move.w				$2(a2),$4(a3) 	; 2 - 4
+	move.w				$4(a2),$8(a3) 	; 4 - 8
+	move.w				$6(a2),$C(a3) 	; 6 - 12
+	move.w				$8(a2),$10(a3)	; 8 - 16
+	move.w				$A(a2),$14(a3)	; 10 - 20
+	move.w				$C(a2),$18(a3)	; 12 - 24
+	move.w				$E(a2),$1c(a3) 	; 14 - 28
+
+	; second 8 colors
+	move.w				$10(a2),$20(a3) 	; 16 - 32
+	move.w				$12(a2),$24(a3) 	; 18 - 36
+	move.w				$14(a2),$28(a3) 	; 20 - 40
+	move.w				$16(a2),$2C(a3) 	; 22 - 44
+	move.w				$18(a2),$30(a3) 	; 24 - 48
+	move.w				$1A(a2),$34(a3)		; 26 - 52
+	move.w				$1C(a2),$38(a3)		; 28 - 56
+	move.w				$1E(a2),$3c(a3) 	; 30 - 60
+
+	; third 8 colors
+	move.w				$20(a2),$40(a3) 	; 32 - 64
+	move.w				$22(a2),$44(a3) 	; 34 - 68
+	move.w				$24(a2),$48(a3) 	; 36 - 72
+	move.w				$26(a2),$4C(a3) 	; 38 - 76
+	move.w				$28(a2),$50(a3) 	; 40 - 80
+	move.w				$2A(a2),$54(a3)		; 42 - 84
+	move.w				$2C(a2),$58(a3)		; 44 - 88
+	move.w				$2E(a2),$5c(a3) 	; 46 - 92
+
+	; fourth 8 colors
+	move.w				$30(a2),$60(a3) 	; 48 - 96
+	move.w				$32(a2),$64(a3) 	; 50 - 100
+	move.w				$34(a2),$68(a3) 	; 52 - 104
+	move.w				$36(a2),$6C(a3) 	; 54 - 108
+	move.w				$38(a2),$70(a3) 	; 56 - 112
+	move.w				$3A(a2),$74(a3)		; 58 - 116
+	move.w				$3C(a2),$78(a3)		; 60 - 120
+	move.w				$3E(a2),$7c(a3) 	; 62 - 124
+
+	move.l				a2,TRANS_COL_READ_PTR
+
+	; time to update the chunky screen
+	move.l				a0,TRANS_IMG_READ_PTR
+    jsr 				CHUNKYTOPLANAR
+	bra.s				Aspetta
+
+; code to execute when the transition is complete
+finishtransition:
+	clr.w				IMAGE_PHASE
+	move.w				#TRANSITION_DELAY,TRANSITION_COUNTER
 
 	;move.w				#$000,$dff180
 
@@ -142,9 +230,9 @@ Aspetta:
     cmpi.b  			#$ff,$dff006    ; linea 255?
     beq.s   			Aspetta
 
-	btst				#10,$dff016	; rmb pressed?
-	bne.s				nochangeimage
-	jsr					LOAD_NEXT_IMAGE
+	;btst				#10,$dff016	; rmb pressed?
+	;bne.s				nochangeimage
+	;jsr					LOAD_NEXT_IMAGE
 
 nochangeimage:
 
@@ -161,7 +249,10 @@ exit:
     ENDC
 
 IMAGE_PHASE: dc.w 0
-IMAGE_TRANSITION_MAX_PHASES equ 10
+IMAGE_TRANSITION_MAX_PHASES equ 50
+
+TRANSITION_COUNTER dc.w TRANSITION_DELAY
+TRANSITION_DELAY EQU 50
 
 LOAD_IMAGE:
 	move.l 				currentImage,a0 				; get image address
@@ -177,8 +268,7 @@ WRITE_COLOR MACRO
 	fmove.w 			IMAGE_PHASE,fp2 ; load current phase
   	jsr 				COPFADEFPU2
 
-	move.w				d0,(a3) ; write color into copperlist
-	addq				#4,a3
+	move.w				d0,(a3)+ ; write color into copperlist
 
 	vperm 				\1,\2,e23,\2
 	
@@ -193,7 +283,8 @@ LOAD_NEXT_IMAGE:
 	adda.l				#81920,a0
 	adda.l				#81920,a1
 
-	lea					COLORS+2,a3
+	move.l				TRANS_COL_WRITE_PTR,a3
+
 	WRITE_COLOR			#$0123CDEF,e0 ; color 0
 	WRITE_COLOR			#$CDEF4567,e0 ; color 1
 	WRITE_COLOR			#$0123CDEF,e1 ; color 2
@@ -234,6 +325,8 @@ LOAD_NEXT_IMAGE:
 	WRITE_COLOR			#$0123CDEF,e15 ; color 30
 	WRITE_COLOR			#$CDEF4567,e15 ; color 31
 
+	move.l				a3,TRANS_COL_WRITE_PTR
+
 	jsr					PIXELINTERPOLATION
 
 	; now increment PHASE
@@ -256,12 +349,13 @@ noresetimageaddr:
 CHUNKYTOPLANAR:
 	LOAD #0,E23
 
-	lea CHUNKY_IMAGE,a0
-    lea TRACK_DATA_1,a1
-	lea TRACK_DATA_2,a2
-	lea TRACK_DATA_3,a3
-	lea TRACK_DATA_4,a4
-	lea TRACK_DATA_5,a5
+	;lea CHUNKY_IMAGE,a0
+    move.l 				TRANS_IMG_READ_PTR,a0
+	lea 				TRACK_DATA_1,a1
+	lea 				TRACK_DATA_2,a2
+	lea 				TRACK_DATA_3,a3
+	lea 				TRACK_DATA_4,a4
+	lea 				TRACK_DATA_5,a5
 
 	move.w #(320*256/64)-1,d7
 c2ploop:
@@ -362,7 +456,9 @@ PIXELINTERPOLATION:
 	fmove.w 			IMAGE_PHASE,fp2 ; load current phase
 	fmove.w 			#IMAGE_TRANSITION_MAX_PHASES,fp1 ; load total amount of phases
 
-	lea CHUNKY_IMAGE,a5
+	; load destination address where to store the transition image
+	move.l				TRANS_IMG_WRITE_PTR,a5
+
 	; recap, at this point i have
 	; a0 - pointer to old image
 	; a1 - pointer t new image
@@ -427,8 +523,10 @@ chunkyremaploop: ; for each pixel
 	READ_COLOR_FROM_COPPERLIST 30,#$00000567,e15 ; check color 30
 	READ_COLOR_FROM_COPPERLIST 31,#$00000123,e15 ; check color 31
 
-	move.b e18,(a5)+ ; write new chunky index
-	dbra.l d7,chunkyremaploop
+	move.b 				e18,(a5)+ ; write new chunky index
+	dbra.l 				d7,chunkyremaploop
+	move.l				a5,TRANS_IMG_WRITE_PTR
+
 	rts
 	; ---------------- CODE TO TEST !!!! -----------------------------
 
@@ -452,14 +550,26 @@ AnalogString: 			  incbin "test.raw"
 AnalogStringend:
 
 CHUNKY_IMAGE:
-    ;dcb.b   			  320*256,0
 	incbin 				  "images/pennabilli.data" ; 320*256 indexed chunky image here
 	include 			  "images/pennabilli.col" ; color copperlist here
+
+	; start of transition space
+CHUNKY_TRANSITION_START:
+	dcb.b   			  320*256*IMAGE_TRANSITION_MAX_PHASES,0
+CHUNKY_TRANSITION_END:
+CHUNKY_COLORS_START:
+	dcb.l   			  32*IMAGE_TRANSITION_MAX_PHASES,0
+CHUNKY_COLORS_END:
+
 AudioStart:				  dc.l 0
 AudioWorkPtr:			  dc.l 0
 AudioEnd:				  dc.l 0
 oldAudioVector:			  dc.l 0
 currentImage:			  dc.l IMAGES : pointer to the current image
+TRANS_IMG_WRITE_PTR:	  dc.l CHUNKY_TRANSITION_START
+TRANS_COL_WRITE_PTR:	  dc.l CHUNKY_COLORS_START
+TRANS_IMG_READ_PTR:		  dc.l CHUNKY_IMAGE
+TRANS_COL_READ_PTR:		  dc.l CHUNKY_COLORS_START
 
 IMAGES:
 PENNABILLI:
