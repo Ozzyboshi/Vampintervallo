@@ -1,4 +1,4 @@
-    dc.l $0F0F0F ; Color 0 - $180
+    dc.l $010101 ; Color 0 - $180
     dc.l $030201 ; Color 1 - $182
     dc.l $030202 ; Color 2 - $184
     dc.l $040302 ; Color 3 - $186
@@ -29,4 +29,4 @@
     dc.l $0B0A0A ; Color 28 - $1b8
     dc.l $0D0B07 ; Color 29 - $1ba
     dc.l $0D0C0A ; Color 30 - $1bc
-    dc.l $0 ; Color 31 - $1be
+    dc.l $0F0F0F ; Color 31 - $1be
