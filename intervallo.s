@@ -223,6 +223,17 @@ finishtransition:
 	clr.w				IMAGE_PHASE
 	move.w				#TRANSITION_DELAY,TRANSITION_COUNTER
 
+	jsr					GET_IMAGES_ADDR
+	move.l 				a1,a0
+	MEMCPY16			a0,CHUNKY_IMAGE,81920/16 		; copy image to chunky area
+	jsr					GET_IMAGES_ADDR
+	move.l				a1,currentImage
+	move.l 				#CHUNKY_IMAGE,TRANS_IMG_READ_PTR
+	move.l 				#CHUNKY_TRANSITION_START,TRANS_IMG_WRITE_PTR
+	move.l 				#CHUNKY_COLORS_START,TRANS_COL_WRITE_PTR
+	move.l				#CHUNKY_COLORS_START,TRANS_COL_READ_PTR
+
+
 	;move.w				#$000,$dff180
 
 Aspetta:
@@ -252,7 +263,7 @@ IMAGE_PHASE: dc.w 0
 IMAGE_TRANSITION_MAX_PHASES equ 50
 
 TRANSITION_COUNTER dc.w TRANSITION_DELAY
-TRANSITION_DELAY EQU 50
+TRANSITION_DELAY EQU 10
 
 LOAD_IMAGE:
 	move.l 				currentImage,a0 				; get image address
@@ -275,8 +286,8 @@ WRITE_COLOR MACRO
 	ENDM
 
 LOAD_NEXT_IMAGE:
-	cmpi.w				#IMAGE_TRANSITION_MAX_PHASES+1,IMAGE_PHASE
-	beq.w 				noresetimage
+	;cmpi.w				#IMAGE_TRANSITION_MAX_PHASES+1,IMAGE_PHASE
+	;beq.w 				noresetimage
 	jsr					GET_IMAGES_ADDR ; after this a0 = current image and a1 next
 
 	; go to color copperlist
@@ -575,9 +586,10 @@ IMAGES:
 PENNABILLI:
 						  incbin 				  "images/pennabilli.data" ; 320*256 indexed chunky image here
 						  include 			  	  "images/pennabilli.col2" ; color copperlist here
+RECANATI:				  incbin 				  "images/recanati.data" ; recanati image
+						  include				  "images/recanati.col2"
 ARENA:					  incbin 				  "images/castigliondellago.data" ; arena image
 						  include				  "images/castigliondellago.col2"
-
 IMAGES_END:
 
     SECTION GRAPHICS,DATA_C

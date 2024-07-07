@@ -60,7 +60,7 @@ def main():
 
     for i, color in enumerate(colors):
         color = convert_color_4bit_to_8bit(color)
-        print(f"    dc.w ${color} ; Color {i} - ${hex(colorcode)[2:]}")
+        print(f"    dc.l ${color} ; Color {i} - ${hex(colorcode)[2:]}")
         colorcode = colorcode + 2
 
 def convert_color_4bit_to_8bit(color):
