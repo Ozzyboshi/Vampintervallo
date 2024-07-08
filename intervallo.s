@@ -32,6 +32,7 @@ AUDIO_VOL EQU $0040
 	movec iep1,d1
 	movec iep2,d2
 	movem.l d0/d1/d2,-(sp)
+	move.w #50,IMAGE_PHASE
 	jsr LOAD_NEXT_IMAGE ;2.17
 	move.l 				b0,a0
 	cmp.l				#CHUNKY_TRANSITION_END,a0
@@ -73,7 +74,7 @@ WaitDisk	EQU	30
 	include "AProcessing/libs/precalc/rgbtoregs.s"
 	include "AProcessing/libs/rasterizers/globaloptions.s"
 	include "AProcessing/libs/vampfpu/copfade2.s"
-	include "AProcessing/libs/vectors/sqrt_q10_6_lookup_table.i"
+	include "sqrt.s"
 
 START:
 
@@ -263,7 +264,7 @@ IMAGE_PHASE: dc.w 0
 IMAGE_TRANSITION_MAX_PHASES equ 50
 
 TRANSITION_COUNTER dc.w TRANSITION_DELAY
-TRANSITION_DELAY EQU 10
+TRANSITION_DELAY EQU 5
 
 LOAD_IMAGE:
 	move.l 				currentImage,a0 				; get image address
@@ -419,7 +420,7 @@ READ_COLOR_FROM_COPPERLIST MACRO
 	; here d0 holds the color we want to find inside the copperlist
 	vperm \2,\3,\3,d6 ; d6 holds the color inside the copperlist (copy on eX regs)
 
-	lea SQRT_TABLE_Q10_6,a6
+	lea SQRT_TABLE_Q11_5,a6
     psubw d6,e23,e16
     pmull e16,e16,e16
 
@@ -433,7 +434,7 @@ READ_COLOR_FROM_COPPERLIST MACRO
 	;fmove.w d1,fp0
 
     ;fsqrt fp0,fp0
-    lsl.w #6,d1
+    lsl.w #5,d1
     move.w 0(a6,d1.w*2),e16
 
 
@@ -588,7 +589,7 @@ PENNABILLI:
 						  include 			  	  "images/pennabilli.col2" ; color copperlist here
 RECANATI:				  incbin 				  "images/recanati.data" ; recanati image
 						  include				  "images/recanati.col2"
-ARENA:					  incbin 				  "images/castigliondellago.data" ; arena image
+CASTIGLIONDELLAGO:		  incbin 				  "images/castigliondellago.data" ; arena image
 						  include				  "images/castigliondellago.col2"
 IMAGES_END:
 
