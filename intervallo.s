@@ -9,6 +9,8 @@ POINTINCOPPERLIST MACRO
   ENDM
 
 AUDIO_CHUNK EQU 512
+CHANGEPICTUREDELAY EQU 40*50
+TRANSITION_DELAY EQU 3
 
 SWAP_BPL MACRO
     neg.l SCREEN_OFFSET
@@ -88,6 +90,7 @@ WaitDisk	EQU	30
 
 START:
 
+	IFD LOL
 	; Setup first image
 	;jsr 				LOAD_IMAGE
 
@@ -110,10 +113,52 @@ SETAUD0VOLUME:
 
 SETAUD0PERIOD:
     MOVE.W  			#162,$DFF0A6 ; 3579546/22050
+	ENDC
 
-	;moveC				VBR,A0
-	move.l 			BaseVBR,a0
-	move.l				#AudioHandler,$70(A0)	; Set Level 4 (audio) Vector.
+	moveC				VBR,A0
+	;move.l 				BaseVBR,a0
+	move.l  			#VblHandler,$6c(A0)
+
+	;move.l				#AudioHandler,$70(A0)	; Set Level 4 (audio) Vector.
+
+
+	* On V4 we can use ARNE 32bit Audio DMA to play the Music 
+* V4 will play stereo music on chan 0
+*
+* On V2 we only have Paula and need to copy chunks to chipmem to allow her to play it
+* V2 will use channel 0 and 1 to play music
+*
+	move.b	$DFF3FC,D0		; Vampire version
+	move.b	#4,VERSION
+	cmp.b	#1,D0
+	beq.s	V2
+	cmp.b	#2,D0
+	beq.s	V2
+	cmp.b	#6,D0
+	bne.s	ENDDETECTION
+V2
+	move.b	#2,VERSION
+ENDDETECTION
+
+	cmp.b	#4,VERSION
+	bne.s	.V2
+.V4
+	move.l	#musiT+64,$DFF400	; Set music Addr
+	move.l	#(musiT_e-musiT-64)/8,$DFF404	; set musik length
+	move.w	#$FFFF,$DFF408		; max Volume
+	move.w	#160,$DFF40C		; 22 Khz
+	move.w	#4,$DFF40A		; 16bit stereo music
+	move.w	#$8201,$DFF096		; turn Audio DMA on
+	bra	.endmusic
+.V2
+	
+	; Transfer initial audio data into buffers
+   	move.l	#musiT+64,AudioStart		; StartPointer
+	move.l	#musiT_e,AudioEnd	; End
+
+	bsr	InitV2Audio
+.endmusic
+
 
 	move.l              #TRACK_DATA_1,d0
   	lea                 BPLPTR1,A1
@@ -136,7 +181,7 @@ SETAUD0PERIOD:
   	bsr.w               POINTINCOPPERLIST_FUNCT
 
 
-	lea $dff000,a5
+	lea 				$dff000,a5
     MOVE.W				#DMASET,$96(a5)		; DMACON - enable bitplane, copper, sprites and audio (optional).
 
 	; copperlist setup
@@ -146,7 +191,7 @@ SETAUD0PERIOD:
 	move.w				#$c00,$106(a5)		; AGA disable
 	move.w				#$11,$10c(a5)		; AGA disable
 
-	move.w 				#$C080,$dff09a ; intena, enable interrupt lvl 2
+	move.w 				#$C0A0,$dff09a 		; intena, enable interrupt for vbl and aud0
 
 	jsr 				CHUNKYTOPLANAR
 
@@ -168,9 +213,11 @@ noloadtransitions:
 	; timer delay to sync v4 with v2
 testaudiocounter:
 	move.l AUDIOCOUNTER,d0
-	cmp.l #1500,d0
+	cmp.l #CHANGEPICTUREDELAY,d0
 	bcc audiocounterok
+	IFD COLORDEBUG
 	move.w #$0F0,$dff180
+	ENDC
 	bra.w Aspetta
 audiocounterok:
 
@@ -280,11 +327,60 @@ exit:
     include "debug.s"
     ENDC
 
+******************************
+InitV2Audio:
+	move.l	AudioStart,A0
+	lea	leftBuffer1,a1
+	lea	rightBuffer1,a2
+	move.w	#221-1,d0               ; Number of samples to copy.
+.copy
+	move.w	(A0)+,D1                ; Load 16bit sample (L)
+	move.w	(A0)+,D2                ; Load 16bit sample (R)
+	move.b	(A0),D1
+	addq.l	#2,A0
+	move.b	(A0),D2
+	addq.l	#2,A0
+
+	move.w  D1,(A1)+
+	move.w	D2,(A2)+    
+	dbra	D0,.copy
+
+	move.l	A0,AudioWorkPtr		; save Ptr
+
+	; Setup Audio Channel IRQ
+	moveC	VBR,A0
+	move.l	#AudioHandler,$70(A0)	; Set Level 4 (audio) Vector.
+
+	; Set Sampling Rate and Period
+	; PAL Clock Constant = 3546895
+	; Period = Clock Constant / Hz (22050hz -> 160.857)
+	move.w	#160,$DFF0A6
+	move.w	#160,$DFF0B6
+
+	; Set Audio Data Buffer Lengths
+	move.w	#(442/2),$DFF0A4         ; Set Audio Length for Channel 0.
+	move.w	#(442/2),$DFF0B4         ; Set Audio Length for Channel 1.
+
+	; Set Audio Buffer Locations
+    	move.l	#leftBuffer1,$DFF0A0
+	move.l	#rightBuffer1,$DFF0B0
+
+	; Enable Audio IRQ 
+	; -> As both channels are in lock-step, we only need a single IRQ.
+	move.w	#$c080,$dff09a
+
+	; Set Volume and Start DMA
+	move.w	#AUDIO_VOL,$DFF0A8      ; Set Volume for Channel 0.
+	move.w	#AUDIO_VOL,$DFF0B8      ; Set Volume for Channel 1.
+	move.w	#$8203,$DFF096          ; Enable Audio Channel DMA 0+1
+	clr.b	Audioticktock
+
+	rts
+
 IMAGE_PHASE: dc.w 0
 IMAGE_TRANSITION_MAX_PHASES equ 50
 
 TRANSITION_COUNTER dc.w TRANSITION_DELAY
-TRANSITION_DELAY EQU 5
 
 LOAD_IMAGE:
 	move.l 				currentImage,a0 				; get image address
@@ -472,7 +568,9 @@ vampire_fpu9_upd_max\1:
 	ENDM
 
 PIXELINTERPOLATION:
+	IFD COLORDEBUG
 	move.w #$F00,$dff180
+	ENDC
 
 	;movem.l d0-d7/a0-a6,-(sp)
 	; ---------------- CODE TO TEST !!!! -----------------------------
@@ -564,25 +662,59 @@ chunkyremaploop: ; for each pixel
 
 AUDIOCOUNTER:	dc.l 0
 
-; Autovector - this routine is triggered every time a sample has been played
-AudioHandler:
-	movem.l 			  a0/a1/d7,-(sp)
-	move.w				  #$0080,$DFF09C	; Clear INTREQ for Audio 0.
+VblHandler:
+	btst.b #5,$dff01f
+	beq.s novbl
 	addi.l #1,AUDIOCOUNTER
-	move.l 				  AudioWorkPtr,a0
-	LEA     			  CHIPAUDIODATA,a1 ;Address of data to
-	MEMCPY16 			  a0,CHIPAUDIODATA,AUDIO_CHUNK/16
-	move.l 				  a0,AudioWorkPtr
-	cmp.l 				  #AnalogStringend,a0
-	bls.s 				  noresetsample
-	move.l 				  #AudioHandler,AudioWorkPtr
-noresetsample:
-	movem.l (sp)+,a0/a1/d7
+novbl:
+	move.w #%1110000,$DFF09C
 	rte
 
-; Music 8bit signed file
-AnalogString: 			  incbin "test.raw"
-AnalogStringend:
+AudioHandler:
+	movem.l	d0-d2/a0-a2,-(sp)
+
+	move.w	#$0080,$DFF09C	; Clear INTREQ for Audio 0.
+
+	tst.b	Audioticktock
+	beq.s	.pong
+.ping
+	lea	leftBuffer1,a1
+	lea	rightBuffer1,a2
+	bra.s	.process
+.pong
+	lea	leftBuffer2,a1
+	lea	rightBuffer2,a2
+
+    ; We process both left and right channels from
+    ; a single IRQ, as both are running at the same rate in lock-step
+.process
+	neg.b	Audioticktock
+	move.l	A1,$DFF0A0	; Set New Buffer Address.
+	move.l	A2,$DFF0B0	; Set New Buffer Address.
+
+	move.l	AudioWorkPtr,a0
+	move.w	#442/2-1,D0	; Number of samples to copy.
+.copy
+	move.w	(A0)+,D1                ; Load 16bit sample (L)
+	move.w	(A0)+,D2                ; Load 16bit sample (R)
+	move.b	(A0),D1
+	addq.l	#2,A0
+	move.w	D1,(A1)+
+	move.b	(A0),D2
+	addq.l	#2,A0
+	move.w	D2,(A2)+
+	dbra	D0,.copy
+
+	move.l	AudioEnd,a1
+	cmp.l	a1,a0
+	blt.s	.noloop
+	move.l	AudioStart,A0
+.noloop
+	move.l	A0,AudioWorkPtr
+.done
+
+	movem.l	(sp)+,D0-D2/A0-A2
+	rte
 
 CHUNKY_IMAGE:
 	incbin 				  "images/pennabilli.data" ; 320*256 indexed chunky image here
@@ -600,6 +732,9 @@ AudioStart:				  dc.l 0
 AudioWorkPtr:			  dc.l 0
 AudioEnd:				  dc.l 0
 oldAudioVector:			  dc.l 0
+VERSION:				  dc.l 0
+Audioticktock dc.b 0
+	even
 currentImage:			  dc.l IMAGES : pointer to the current image
 TRANS_IMG_WRITE_PTR:	  dc.l CHUNKY_TRANSITION_START
 TRANS_COL_WRITE_PTR:	  dc.l CHUNKY_COLORS_START
@@ -615,6 +750,11 @@ RECANATI:				  incbin 				  "images/recanati.data" ; recanati image
 CASTIGLIONDELLAGO:		  incbin 				  "images/castigliondellago.data" ; arena image
 						  include				  "images/castigliondellago.col2"
 IMAGES_END:
+
+	section	musiT,DATA_F
+musiT	
+	incbin	"music/intervallo.aiff"
+musiT_e
 
     SECTION GRAPHICS,DATA_C
 
@@ -649,4 +789,8 @@ DASHBOARD_DATA_5:
 
 CHIPAUDIODATA:                       ; Audio data must be in Chip memory
 		dcb.b AUDIO_CHUNK,0
-	
+    SECTION AppBSS,BSS_C
+leftBuffer1  ds.w 221           ; We use 2 buffers for each left/right 
+leftBuffer2  ds.w 221           ; so that we can ping-pong between them when reloading
+rightBuffer1 ds.w 221           ; during the IRQ.
+rightBuffer2 ds.w 221
