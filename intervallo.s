@@ -28,16 +28,26 @@ AUDIO_VOL EQU $0040
 	;dc.w  $714a
 	;dbra d1,label ; $74a (=bank) makes d1 into e9
 
-	movec ccc,d0
-	movec iep1,d1
-	movec iep2,d2
+	LEA	$BFE001,A2	; CIAA base -> USATO
+	MOVE.B	#0,$800(A2)	; TODLO - bit 7-0 del timer a 50-60hz
+
+
+	;movec ccc,d0
+	;movec iep1,d1
+	;movec iep2,d2
 	movem.l d0/d1/d2,-(sp)
 	move.w #50,IMAGE_PHASE
 	jsr LOAD_NEXT_IMAGE ;2.17
-	move.l 				b0,a0
-	cmp.l				#CHUNKY_TRANSITION_END,a0
-	beq alessio
-	moveq  #0,d0
+
+	LEA	$BFE001,A2	; CIAA base -> USATO
+	move.B	$800(A2),d0
+
+	lea	$bfd000,a5
+	sf	$f00(a5)
+	move.b	$700(a5),d0
+	lsl.w	#8,d0
+	move.b	$600(a5),d0
+	not.w	d0
 alessio:
 	movem.l (sp)+,d0/d1/d2
 	movec ccc,d3
@@ -155,6 +165,16 @@ mouse:
 	bra.w				Aspetta
 noloadtransitions:
 
+	; timer delay to sync v4 with v2
+testaudiocounter:
+	move.l AUDIOCOUNTER,d0
+	cmp.l #1500,d0
+	bcc audiocounterok
+	move.w #$0F0,$dff180
+	bra.w Aspetta
+audiocounterok:
+
+
 	; Manage transition phase
 	; delay?
 	sub.w				#1,TRANSITION_COUNTER
@@ -233,7 +253,7 @@ finishtransition:
 	move.l 				#CHUNKY_TRANSITION_START,TRANS_IMG_WRITE_PTR
 	move.l 				#CHUNKY_COLORS_START,TRANS_COL_WRITE_PTR
 	move.l				#CHUNKY_COLORS_START,TRANS_COL_READ_PTR
-
+	clr.l 				AUDIOCOUNTER
 
 	;move.w				#$000,$dff180
 
@@ -542,10 +562,13 @@ chunkyremaploop: ; for each pixel
 	rts
 	; ---------------- CODE TO TEST !!!! -----------------------------
 
+AUDIOCOUNTER:	dc.l 0
+
 ; Autovector - this routine is triggered every time a sample has been played
 AudioHandler:
 	movem.l 			  a0/a1/d7,-(sp)
 	move.w				  #$0080,$DFF09C	; Clear INTREQ for Audio 0.
+	addi.l #1,AUDIOCOUNTER
 	move.l 				  AudioWorkPtr,a0
 	LEA     			  CHIPAUDIODATA,a1 ;Address of data to
 	MEMCPY16 			  a0,CHIPAUDIODATA,AUDIO_CHUNK/16
