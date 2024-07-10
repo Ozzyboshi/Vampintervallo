@@ -24,7 +24,9 @@ In Vampintervallo, you will find just "Passacaglia" and "Toccata," which are my 
 You are welcome to contribute by adding your own pictures to this repository. Just send a pull request, and I will be happy to include them in this project.
 
 ### Technical Information
-This demo utilizes AMMX Vampire instructions, so it won't work on regular Amigas. It has been successfully tested on a V600 (core 2.17) and V4SA. All assets (images and music) are embedded into a single executable, so to launch the demo, just double-click on it or run it from the CLI.
+This demo utilizes AMMX Vampire instructions, so it won't work on regular Amigas. It has been successfully tested on a V600 (core 2.17) and V4SA.
+All assets (images and music) are embedded into a single executable, so to launch the demo, just double-click on it or run it from the CLI.
+Images are stored in chunky format but converted on the fly in planar (see vampire C2P instruction), this allows v2 users to display the demo on a CRT monitor using the old analog db23 connector.
 
 ### Screenshots
 ![pennabilli](images/pennabilli.png)
