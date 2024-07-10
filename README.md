@@ -28,5 +28,5 @@ This demo utilizes AMMX Vampire instructions, so it won't work on regular Amigas
 
 ### Screenshots
 ![pennabilli](images/pennabilli.png)
-![castigliondellago](images/castigliondelllago.png)
+![castigliondellago](images/castigliondellago.png)
 ![recanati](images/recanati.png)
