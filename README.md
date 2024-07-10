@@ -25,4 +25,8 @@ You are welcome to contribute by adding your own pictures to this repository. Ju
 
 ### Technical Information
 This demo utilizes AMMX Vampire instructions, so it won't work on regular Amigas. It has been successfully tested on a V600 (core 2.17) and V4SA. All assets (images and music) are embedded into a single executable, so to launch the demo, just double-click on it or run it from the CLI.
-  
+
+### Screenshots
+![pennabilli](images/pennabilli.png)
+![castigliondellago](images/castigliondelllago.png)
+![recanati](images/recanati.png)
