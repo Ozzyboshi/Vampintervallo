@@ -51,7 +51,6 @@ In order to get the executable you must use vasm (http://sun.hasenbraten.de/vasm
 Optionally use shrinkler if you want to compress final executable which is quite big since the whole aiff music file is buried into the exectuable.
 Compilation commands:
 ```
-git clone https://github.com/Ozzyboshi/vampintervallo
-git submodule update
+git clone --recurse-submodules https://github.com/Ozzyboshi/vampintervallo
 vasmm68k_mot -DVAMPIRE -Fhunkexe -devpac -nocase -m68080 -DVAMPIRE  -o ./intervallo ./intervallo.s
 ```
