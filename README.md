@@ -46,7 +46,7 @@ Images are stored in chunky format but converted on the fly in planar (see vampi
 
   Keep in mind to add pictures which are coherent with the intervallo, do not add images with recognizable people.
 
-### how to Compile
+### How to Compile
 In order to get the executable you must use vasm (http://sun.hasenbraten.de/vasm/) at least version 19f.
 Optionally use shrinkler if you want to compress final executable which is quite big since the whole aiff music file is buried into the exectuable.
 Compilation commands:
