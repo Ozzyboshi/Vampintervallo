@@ -30,3 +30,26 @@ This demo utilizes AMMX Vampire instructions, so it won't work on regular Amigas
 ![pennabilli](images/pennabilli.png)
 ![castigliondellago](images/castigliondellago.png)
 ![recanati](images/recanati.png)
+
+### How to add a new image
+- Store your image (and all output images that we are going to do into images subfolder)
+- Load image into GIMP (or your favourite image editor)
+- Resize image to 320X256
+- Set color depth to 32
+- Export setting output to raw RGB
+- Export setting output to PNG
+- Check final size is of raw image is 81920 bytes
+- extract copperlist with extract_palette.py python script which is under pytools directory, example python3 extract_palette.py /mnt/ramdisk/Arena-XE3F2406a.png > /mnt/ramdisk/Arena-XE3F2406a.col
+- copy Arena-XE3F2406a.col into images subfolder and include both color file and image file in the intervallo.s file (see IMAGES: label)
+
+  Keep in mind to add pictures which are coherent with the intervallo, do not add images with recognizable people.
+
+### how to Compile
+In order to get the executable you must use vasm (http://sun.hasenbraten.de/vasm/) at least version 19f.
+Optionally use shrinkler if you want to compress final executable which is quite big since the whole aiff music file is buried into the exectuable.
+Compilation commands:
+```
+git clone https://github.com/Ozzyboshi/vampintervallo
+git submodule update
+vasmm68k_mot -DVAMPIRE -Fhunkexe -devpac -nocase -m68080 -DVAMPIRE  -o ./intervallo ./intervallo.s
+```
