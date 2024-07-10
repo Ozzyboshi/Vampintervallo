@@ -1,7 +1,9 @@
 # Vampintervallo
-Vampintervallo is a demo/slideshow designed for Amiga Vampire accelerator cards and V4SA products. This project is a tribute to the beloved "Intervallo RAI," which used to air on Italian national TV channels in the '70s and '80s as a filler between shows.
+Vampintervallo is a demo/slideshow designed for Amiga Vampire accelerator cards and V4SA products.
 
-The RAI Intervallo was simply a slideshow showcasing various Italian landscapes and architectural beauties, often unknown to the general public. These images were accompanied by stunning background music, including:
+This project is a tribute to the beloved "Intervallo RAI," which used to air on Italian national TV channels in the '70s and '80s as a filler between shows.
+The RAI Intervallo was simply a slideshow showcasing various Italian landscapes and architectural beauties, often unknown to the general public.
+These images were accompanied by stunning background music, including:
 
 - Passacaglia in G minor from Suite for Harpsichord No. 7, HWV 432 by Georg Friedrich Händel
 - Sarabande from the Fourth Concert of the Concerts royaux by François Couperin
