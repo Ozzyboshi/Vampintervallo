@@ -49,7 +49,7 @@ Images are stored in chunky format but converted on the fly in planar (see vampi
 
 ### How to Compile
 In order to get the executable you must use vasm (http://sun.hasenbraten.de/vasm/) at least version 19f.
-Optionally use shrinkler if you want to compress final executable which is quite big since the whole aiff music file is buried into the exectuable.
+Optionally use shrinkler if you want to compress final executable which is quite big since the whole aiff music file is buried into the executable.
 Compilation commands:
 ```
 git clone --recurse-submodules https://github.com/Ozzyboshi/vampintervallo
