@@ -9,8 +9,9 @@ POINTINCOPPERLIST MACRO
   ENDM
 
 AUDIO_CHUNK EQU 512
-CHANGEPICTUREDELAY EQU 40*50
+CHANGEPICTUREDELAY EQU 19*50
 TRANSITION_DELAY EQU 3
+IMAGE_TRANSITION_MAX_PHASES equ 25
 
 SWAP_BPL MACRO
     neg.l SCREEN_OFFSET
@@ -92,27 +93,7 @@ START:
 
 	IFD LOL
 	; Setup first image
-	;jsr 				LOAD_IMAGE
-
-	; COLORS OF THE FIRST CHUNKY_IMAGE
-	;MEMCPY16 			COLOSSEO_2020_COLORS,COLORS,32*4/16
-
-	MEMCPY16 			AnalogString,CHIPAUDIODATA,AUDIO_CHUNK/16
-	move.l 				a0,AudioWorkPtr
-
-	LEA     			CHIPAUDIODATA,a1 ;Address of data to
-                                ;  audio location register 0
-    MOVE.L  			a1,$DFF0A0  ;The 680x0 writes this as though it were a
-                                ;  32-bit register at the low-bits location
-                                ;  (common to all locations and pointer
-                                ;  registers in the system).
-    MOVE.W  			#AUDIO_CHUNK/2,$DFF0A4  ;Set length in words
-
-SETAUD0VOLUME:
-    MOVE.W  			#64,$DFF0A8 ;Use maximum volume
-
-SETAUD0PERIOD:
-    MOVE.W  			#162,$DFF0A6 ; 3579546/22050
+	jsr 				LOAD_IMAGE
 	ENDC
 
 	moveC				VBR,A0
@@ -378,7 +359,6 @@ InitV2Audio:
 	rts
 
 IMAGE_PHASE: dc.w 0
-IMAGE_TRANSITION_MAX_PHASES equ 50
 
 TRANSITION_COUNTER dc.w TRANSITION_DELAY
 
@@ -534,36 +514,28 @@ POINTINCOPPERLIST_FUNCT:
 
 READ_COLOR_FROM_COPPERLIST MACRO
 	; here d0 holds the color we want to find inside the copperlist
-	vperm \2,\3,\3,d6 ; d6 holds the color inside the copperlist (copy on eX regs)
+	vperm 			\2,\3,\3,d6 ; d6 holds the color inside the copperlist (copy on eX regs)
 
-	lea SQRT_TABLE_Q11_5,a6
-    psubw d6,e23,e16
-    pmull e16,e16,e16
+    psubw 			d6,e23,e16
+    pmull 			e16,e16,e16
 
 	; alignment for final addition start
-	vperm #$00000007,e16,e17,d1
-	vperm #$00000006,e16,e17,e17
-	vperm #$00000005,e16,e17,e19
+	vperm 			#$00000007,e16,e17,d1
+	vperm 			#$00000006,e16,e17,e17
+	vperm 			#$00000005,e16,e17,e19
 	; alignment for final addition end
-    paddw d1,e17,d1
-    paddw d1,e19,d1
-	;fmove.w d1,fp0
 
-    ;fsqrt fp0,fp0
-    lsl.w #5,d1
-    move.w 0(a6,d1.w*2),e16
+    paddw 			d1,e17,d1
+    paddw 			d1,e19,d1
 
-
-	;fcmp fp0,fp6
-	;fmove FPSR,d6
-	;btst #31-4,d6
+    lsl.w 			#5,d1
+    move.w 			0(a6,d1.w*2),e16
 	
-	cmp.w e16,e22 
-	bcs.s vampire_fpu9_upd_max\1
-	;fmove fp0,fp6
+	cmp.w 			e16,e22 
+	bcs.s 			vampire_fpu9_upd_max\1
 	; if we are here it means we found a shorter distance
-	load e16,e22
-	LOAD #\1,E18
+	load 			e16,e22
+	LOAD 			#\1,E18
 vampire_fpu9_upd_max\1:
 	ENDM
 
@@ -596,22 +568,22 @@ PIXELINTERPOLATION:
 	move.l 				#320*256-1,d7
 chunkyremaploop: ; for each pixel
 	
-	move.b (a0)+,d0
-	ext.w d0
-	move.l 0(a3,d0.w*4),d0 ; Now d0 holds the source color
+	clr.w 				d0
+	clr.w 				d1
 
-	move.b (a1)+,d1
-	ext.w d1
-	move.l 0(a4,d1.w*4),d1 ; Now d1 holds the destination color
+	move.b 				(a0)+,d0
+	move.b 				(a1)+,d1
+
+	lea 				SQRT_TABLE_Q11_5,a6
+
+	move.l 				0(a4,d1.w*4),d1 ; Now d1 holds the destination color
+	move.l 				0(a3,d0.w*4),d0 ; Now d0 holds the source color
 
   	jsr 				COPFADEFPU2
 
 	; d0 now holds the color i am looking for
 	; find the index of the new color
-	;movem.l d1-d7/a0-a1,-(sp)
-	;load d0,e0
-	;fmove #455,fp6
-	move.w #$FFFF,e22
+	move.w 				#$FFFF,e22
 
 	READ_COLOR_FROM_COPPERLIST 0,#$00000567,e0 ; check color 0
 	READ_COLOR_FROM_COPPERLIST 1,#$00000123,e0 ; check color 1
@@ -747,50 +719,49 @@ PENNABILLI:
 						  include 			  	  "images/pennabilli.col2" ; color copperlist here
 RECANATI:				  incbin 				  "images/recanati.data" ; recanati image
 						  include				  "images/recanati.col2"
-CASTIGLIONDELLAGO:		  incbin 				  "images/castigliondellago.data" ; arena image
+CASTIGLIONDELLAGO:		  incbin 				  "images/castigliondellago.data" ; lake image
 						  include				  "images/castigliondellago.col2"
+RIDRACOLI:		  		  incbin 				  "images/ridracoli.data" ; ridracoli
+						  include				  "images/ridracoli.col2"
 IMAGES_END:
 
 	section	musiT,DATA_F
-musiT	
-	incbin	"music/intervallo.aiff"
+musiT
+	IFND COLORDEBUG1
+	incbin										  "music/intervallo.aiff"
+	ENDC
 musiT_e
 
     SECTION GRAPHICS,DATA_C
 
 	;include "AProcessing/libs/rasterizers/processing_bitplanes_fast.s"
-	include "copperlist.s"
+	include 									  "copperlist.s"
 
 TRACK_DATA_1:
-	;incbin  "assets/tracks/track1/rc045_320X240X32.raw.aa"
-	dcb.b   40*240,0
+	dcb.b   									  40*240,0
 DASHBOARD_DATA_1:
-	dcb.b   40*16,0
+	dcb.b   									  40*16,0
 TRACK_DATA_2:
-	;incbin  "assets/tracks/track1/rc045_320X240X32.raw.ab"
-	dcb.b   40*240,0
+	dcb.b   									  40*240,0
 DASHBOARD_DATA_2:
-	dcb.b   40*16,0
+	dcb.b   									  40*16,0
 TRACK_DATA_3:
-	;incbin  "assets/tracks/track1/rc045_320X240X32.raw.ac"
-	dcb.b   40*240,0
+	dcb.b   									  40*240,0
 DASHBOARD_DATA_3:
-	dcb.b   40*16,0
+	dcb.b   									  40*16,0
 TRACK_DATA_4:
-	;incbin  "assets/tracks/track1/rc045_320X240X32.raw.ad"
-	dcb.b   40*240,0
+	dcb.b   									  40*240,0
 DASHBOARD_DATA_4:
-	dcb.b   40*16,0
+	dcb.b   									  40*16,0
 TRACK_DATA_5:
-	;incbin  "assets/tracks/track1/rc045_320X240X32.raw.ae"
-	dcb.b   40*240,0
+	dcb.b   									  40*240,0
 DASHBOARD_DATA_5:
-	dcb.b   40*16,0
+	dcb.b   									  40*16,0
 
 CHIPAUDIODATA:                       ; Audio data must be in Chip memory
-		dcb.b AUDIO_CHUNK,0
+	dcb.b 										  AUDIO_CHUNK,0
     SECTION AppBSS,BSS_C
-leftBuffer1  ds.w 221           ; We use 2 buffers for each left/right 
-leftBuffer2  ds.w 221           ; so that we can ping-pong between them when reloading
-rightBuffer1 ds.w 221           ; during the IRQ.
-rightBuffer2 ds.w 221
+leftBuffer1  									  ds.w 221           ; We use 2 buffers for each left/right 
+leftBuffer2  									  ds.w 221           ; so that we can ping-pong between them when reloading
+rightBuffer1 									  ds.w 221           ; during the IRQ.
+rightBuffer2 									  ds.w 221
