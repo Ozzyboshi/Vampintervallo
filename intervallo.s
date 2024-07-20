@@ -723,6 +723,12 @@ CASTIGLIONDELLAGO:		  incbin 				  "images/castigliondellago.data" ; lake image
 						  include				  "images/castigliondellago.col2"
 RIDRACOLI:		  		  incbin 				  "images/ridracoli.data" ; ridracoli
 						  include				  "images/ridracoli.col2"
+CHIUSIDELLAVERNA:		  incbin 				  "images/chiusidellaverna.data" ; chiusidellaverna
+						  include				  "images/chiusidellaverna.col2"
+SPOLETO:		  		  incbin 				  "images/spoleto.data" ; spoleto
+						  include				  "images/spoleto.col2"
+SANMARINO:		  		  incbin 				  "images/sanmarino.data" ; sanmarino
+						  include				  "images/sanmarino.col2"
 IMAGES_END:
 
 	section	musiT,DATA_F
