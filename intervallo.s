@@ -717,6 +717,8 @@ IMAGES:
 PENNABILLI:
 						  incbin 				  "images/pennabilli.data" ; 320*256 indexed chunky image here
 						  include 			  	  "images/pennabilli.col2" ; color copperlist here
+SINALUNGA:		  		  incbin 				  "images/sinalunga.data" ; sinalunga
+						  include				  "images/sinalunga.col2"
 RECANATI:				  incbin 				  "images/recanati.data" ; recanati image
 						  include				  "images/recanati.col2"
 CASTIGLIONDELLAGO:		  incbin 				  "images/castigliondellago.data" ; lake image
@@ -729,6 +731,7 @@ SPOLETO:		  		  incbin 				  "images/spoleto.data" ; spoleto
 						  include				  "images/spoleto.col2"
 SANMARINO:		  		  incbin 				  "images/sanmarino.data" ; sanmarino
 						  include				  "images/sanmarino.col2"
+
 IMAGES_END:
 
 	section	musiT,DATA_F
