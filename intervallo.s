@@ -717,6 +717,8 @@ IMAGES:
 PENNABILLI:
 						  incbin 				  "images/pennabilli.data" ; 320*256 indexed chunky image here
 						  include 			  	  "images/pennabilli.col2" ; color copperlist here
+SANTACOLOMBA:		  	  incbin 				  "images/santacolomba.data" ; santacolomba
+						  include				  "images/santacolomba.col2"
 SINALUNGA:		  		  incbin 				  "images/sinalunga.data" ; sinalunga
 						  include				  "images/sinalunga.col2"
 RECANATI:				  incbin 				  "images/recanati.data" ; recanati image
