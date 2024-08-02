@@ -717,6 +717,12 @@ IMAGES:
 PENNABILLI:
 						  incbin 				  "images/pennabilli.data" ; 320*256 indexed chunky image here
 						  include 			  	  "images/pennabilli.col2" ; color copperlist here
+MALCESINE:		  		  incbin 				  "images/malcesine.data" ; malcesine
+						  include				  "images/malcesine.col2"
+ARCO:		  	  		  incbin 				  "images/arco.data" ; arco
+						  include				  "images/arco.col2"
+RIVADELGARDA:		  	  incbin 				  "images/rivadelgarda.data" ; rivadelgarda
+						  include				  "images/rivadelgarda.col2"
 SANTACOLOMBA:		  	  incbin 				  "images/santacolomba.data" ; santacolomba
 						  include				  "images/santacolomba.col2"
 SINALUNGA:		  		  incbin 				  "images/sinalunga.data" ; sinalunga
@@ -731,6 +737,8 @@ CHIUSIDELLAVERNA:		  incbin 				  "images/chiusidellaverna.data" ; chiusidellave
 						  include				  "images/chiusidellaverna.col2"
 SPOLETO:		  		  incbin 				  "images/spoleto.data" ; spoleto
 						  include				  "images/spoleto.col2"
+LIMONESULGARDA:		  	  incbin 				  "images/limonesulgarda.data" ; limonesulgarda
+						  include				  "images/limonesulgarda.col2"
 SANMARINO:		  		  incbin 				  "images/sanmarino.data" ; sanmarino
 						  include				  "images/sanmarino.col2"
 
