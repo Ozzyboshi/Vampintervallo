@@ -39,9 +39,9 @@ Images are stored in chunky format but converted on the fly in planar (see vampi
 ![sinalunga](images/sinalunga.png)
 ![santacolomba](images/santacolomba.png)
 ![arco](images/arco.png)
-![arco](limonesulgarda/limonesulgarda.png)
-![arco](malecesine/malcesine.png)
-![arco](rivadelgarda/rivadelgarda.png)
+![limonesulgarda](images/limonesulgarda.png)
+![malcesine](images/malcesine.png)
+![rivadelgarda](images/rivadelgarda.png)
 
 ### How to add a new image
 - Store your image (and all output images that we are going to do into images subfolder)
