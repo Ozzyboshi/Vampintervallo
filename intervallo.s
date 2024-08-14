@@ -12,6 +12,7 @@ AUDIO_CHUNK EQU 512
 CHANGEPICTUREDELAY EQU 19*50
 TRANSITION_DELAY EQU 3
 IMAGE_TRANSITION_MAX_PHASES equ 25
+SEGNALEAUDIOLIMIT equ 50
 
 SWAP_BPL MACRO
     neg.l SCREEN_OFFSET
@@ -124,18 +125,18 @@ ENDDETECTION
 	cmp.b	#4,VERSION
 	bne.s	.V2
 .V4
-	move.l	#musiT+64,$DFF400	; Set music Addr
-	move.l	#(musiT_e-musiT-64)/8,$DFF404	; set musik length
+	move.l	#musiS+64,$DFF400	; Set music Addr
+	move.l	#(musiS_e-musiS-64)/8,$DFF404	; set musik length
 	move.w	#$FFFF,$DFF408		; max Volume
 	move.w	#160,$DFF40C		; 22 Khz
 	move.w	#4,$DFF40A		; 16bit stereo music
 	move.w	#$8201,$DFF096		; turn Audio DMA on
 	bra	.endmusic
 .V2
-	
+
 	; Transfer initial audio data into buffers
-   	move.l	#musiT+64,AudioStart		; StartPointer
-	move.l	#musiT_e,AudioEnd	; End
+   	move.l	#musiS+64,AudioStart		; StartPointer
+	move.l	#musiS_e,AudioEnd	; End
 
 	bsr	InitV2Audio
 .endmusic
@@ -174,6 +175,77 @@ ENDDETECTION
 
 	move.w 				#$C0A0,$dff09a 		; intena, enable interrupt for vbl and aud0
 
+	; Start of rai segnale orario
+	; Start of gameloop
+mousesegnaleorario:
+    cmpi.b  			#$ff,$dff006    ; Linea 255?
+    bne.s   			mousesegnaleorario
+
+Aspettasegnaleorario:
+    cmpi.b  			#$ff,$dff006    ; linea 255?
+    beq.s   			Aspettasegnaleorario
+
+
+	; Start intervallo music
+	cmp.b	#4,VERSION
+	bne.s	.V22
+.V42
+	move.l	#musiT+64,$DFF400	; Set music Addr
+	move.l	#(musiT_e-musiT-64)/8,$DFF404	; set musik length
+	move.w	#$FFFF,$DFF408		; max Volume
+	move.w	#160,$DFF40C		; 22 Khz
+	move.w	#4,$DFF40A		; 16bit stereo music
+	move.w	#$8201,$DFF096		; turn Audio DMA on
+	bra	.endmusic2
+.V22
+
+.endmusic2
+
+
+	sub.w 				#1,SEGNALEAUDIOCOUNTER
+	bne.s				segnaleorarionoreset
+	move.w				#SEGNALEAUDIOLIMIT,SEGNALEAUDIOCOUNTER
+	add.l				#320*256,TRANS_IMG_READ_PTR
+	add.l				#32*4,SEGNALE_ORARIO_COLORS_PTR
+	cmp.l				#SEGNALEORARIOEND,TRANS_IMG_READ_PTR
+	beq.s				segnaleorariocodeend
+segnaleorarionoreset:
+	jsr 				CHUNKYTOPLANAR
+	cmp.l #SEGNALEORARIO21,TRANS_IMG_READ_PTR
+	bne.s nofade
+	jsr FadeOut
+nofade:
+	;move.l				SEGNALE_ORARIO_COLORS_PTR,a0
+	;MEMCPY16				a0,COLORS,32*4/16
+
+
+	btst				#6,$bfe001	; fire pressed?
+	beq.w				exit
+
+	bra.w 				mousesegnaleorario
+segnaleorariocodeend:
+
+	move.w #20-1,d0
+	jsr 				WAITSECONDS
+
+	; START OF INTERVALLO GAMELOOP
+
+	cmp.b	#4,VERSION
+	bne.s	.V222
+.V422
+	bra	.endmusic
+.V222
+
+	; Transfer initial audio data into buffers
+   	move.l	#musiT+64,AudioStart		; StartPointer
+	move.l	#musiT_e,AudioEnd	; End
+
+	bsr	InitV2Audio
+
+.endmusic
+
+	MEMCPY16			PENNABILLI4BYTECOL,COLORS,32*4/16
+	move.l 				#CHUNKY_IMAGE,TRANS_IMG_READ_PTR
 	jsr 				CHUNKYTOPLANAR
 
 	; Start of gameloop
@@ -208,7 +280,7 @@ audiocounterok:
 	sub.w				#1,TRANSITION_COUNTER
 	bne.w				Aspetta
 	move.w				#TRANSITION_DELAY,TRANSITION_COUNTER
-	
+
 	; now we are really transitioning!!!!
 	move.l				TRANS_IMG_READ_PTR,a0
 	adda.l				#320*256,a0
@@ -308,6 +380,126 @@ exit:
     include "debug.s"
     ENDC
 
+FaseDelFade:		; fase attuale del fade (0-16)
+	dc.w	16
+
+TabColoriPic:
+	dc.w $0012 ; Color 0 - $180
+    dc.w $0111 ; Color 1 - $182
+    dc.w $0015 ; Color 2 - $184
+    dc.w $0014 ; Color 3 - $186
+    dc.w $0013 ; Color 4 - $188
+    dc.w $0015 ; Color 5 - $18a
+    dc.w $0016 ; Color 6 - $18c
+    dc.w $0017 ; Color 7 - $18e
+    dc.w $0027 ; Color 8 - $190
+    dc.w $0027 ; Color 9 - $192
+    dc.w $0026 ; Color 10 - $194
+    dc.w $0027 ; Color 11 - $196
+    dc.w $0026 ; Color 12 - $198
+    dc.w $0025 ; Color 13 - $19a
+    dc.w $0027 ; Color 14 - $19c
+    dc.w $0124 ; Color 15 - $19e
+    dc.w $0248 ; Color 16 - $1a0
+    dc.w $0247 ; Color 17 - $1a2
+    dc.w $0456 ; Color 18 - $1a4
+    dc.w $025a ; Color 19 - $1a6
+    dc.w $035a ; Color 20 - $1a8
+    dc.w $0459 ; Color 21 - $1aa
+    dc.w $057b ; Color 22 - $1ac
+    dc.w $067a ; Color 23 - $1ae
+    dc.w $078a ; Color 24 - $1b0
+    dc.w $079d ; Color 25 - $1b2
+    dc.w $079c ; Color 26 - $1b4
+    dc.w $08be ; Color 27 - $1b6
+    dc.w $09bd ; Color 28 - $1b8
+    dc.w $0bbb ; Color 29 - $1ba
+    dc.w $0abc ; Color 30 - $1bc
+    dc.w $0adf ; Color 31 - $1be
+
+
+FadeOut:
+	tst.w	FaseDelFade	; abbiamo superato l'ultima fase? (16)?
+	beq.s	FinitoOut
+	subq.w	#1,FaseDelFade	; sistema per la prossima volta la fase da fare
+	moveq	#0,d0
+	move.w	FaseDelFade(PC),d0
+	moveq	#32-1,d7		; D7 = Numero di colori
+	lea	TabColoriPic(PC),a0	; A0 = indirizzo tabella dei colori
+					; della figura da "dissolvere"
+	lea	COLORS+2,a1		; A1 = indirizzo colori in copperlist
+					; da notare che parte dal COLOR1 e
+					; non dal color0, in quanto il color0
+					; e'=$000 e cosi' rimane.
+	bsr.s	Fade
+FinitoOut:
+	rts
+
+Fade:
+ColorLoop:
+	moveq	#0,d1		; azzera D1
+	moveq	#0,d2		; azzera D2
+
+; Trova la componente risultante ROSSA (Red) ed inseriscila in copperlist ($0R)
+
+	move.b	(a0)+,d1	; D1.b = componente RED (ROSSA) del colore
+				; ossia $0R (la word e' $0RGB)
+	mulu.w	d0,d1		; Moltiplicalo per il livello colore attuale
+	lsr.w	#4,d1		; Dividilo per 16 (con LSR #4), portando il
+				; risultato a destra (il byte e' %00001111)
+	move.b	d1,(a1)+	; Inserisci la nuova componente ROSSA in
+				; copperlist (ossia il byte $0R)
+
+; Trova la componente risultante VERDE (Green) e mettila in d1
+
+	move.b	(a0),d1		; D1.b = componente Green,Blue (VERDE,BLU)
+				; ossia $GB (la word e' $0RGB)
+	lsr.b	#4,d1		; Metti il VERDE tutto a destra spostando
+				; il valore a destra di 4 bit (1 nibble)
+				; dunque in d1.b abbiamo solo il verde
+	mulu.w	d0,d1		; Moltiplicalo per il livello colore attuale
+	and.b	#$f0,d1		; Mascheriamo per selezionare solo il risultato
+				; che a questo punto e' pronto, non occorre
+				; spostarlo a destra, dato che nel registro
+				; colore si trova proprio in questa posizione.
+				; infatti il byte basso e' $GB (la word $0RGB)
+
+;  Trova la componente risultante BLU e mettila in d2
+
+	move.b	(a0)+,d2	; D2.b = componente Green,Blue (VERDE,BLU)
+				; ossia $GB (la word e' $0RGB)
+	and.b	#$0f,d2		; Mascheriamo per selezionare solo il BLU ($0B)
+	mulu.w	d0,d2		; Moltiplicalo per il livello colore attuale
+	lsr.w	#4,d2		; Dividi per 16, portando il risultato a destra
+				; in modo che il risultato sia $0B
+
+; Unisci con OR la componente risultante VERDE con quella BLU
+
+	or.w	d2,d1		; OR del BLU con il VERDE per "unirli" nel byte
+				; finale risultante: $GB
+
+; E metti il byte risultante $GB in copperlist
+
+	move.b	d1,(a1)+	; Inserisci il valore del VERDE e del BLU nel
+				; byte basso $GB del colore in copperlist
+	addq.w	#2,a1		; Vai al prossimo colore i copperlist, saltando
+				; la word del $18x
+	dbra	d7,ColorLoop	; ripeti per gli altri colori
+	rts
+
+WAITSECONDS:
+
+    cmpi.b  			#$ff,$dff006    ; Linea 255?
+    bne.s   			WAITSECONDS
+
+WAITSECONDS2:
+    cmpi.b  			#$ff,$dff006    ; linea 255?
+    beq.s   			WAITSECONDS2
+
+	dbra d0,WAITSECONDS
+
+	rts
+
 ******************************
 InitV2Audio:
 	move.l	AudioStart,A0
@@ -323,7 +515,7 @@ InitV2Audio:
 	addq.l	#2,A0
 
 	move.w  D1,(A1)+
-	move.w	D2,(A2)+    
+	move.w	D2,(A2)+
 	dbra	D0,.copy
 
 	move.l	A0,AudioWorkPtr		; save Ptr
@@ -458,16 +650,16 @@ CHUNKYTOPLANAR:
 	LOAD #0,E23
 
 	;lea CHUNKY_IMAGE,a0
-    move.l 				TRANS_IMG_READ_PTR,a0
-	lea 				TRACK_DATA_1,a1
-	lea 				TRACK_DATA_2,a2
-	lea 				TRACK_DATA_3,a3
-	lea 				TRACK_DATA_4,a4
-	lea 				TRACK_DATA_5,a5
+    move.l 				  TRANS_IMG_READ_PTR,a0
+	lea 				  TRACK_DATA_1,a1
+	lea 				  TRACK_DATA_2,a2
+	lea 				  TRACK_DATA_3,a3
+	lea 				  TRACK_DATA_4,a4
+	lea 				  TRACK_DATA_5,a5
 
-	move.w #(320*256/64)-1,d7
+	move.w 				  #(320*256/64)-1,d7
 c2ploop:
-	load d7,e10
+	load 				  d7,e10
 
     C2P                   (a0)+,E0 ; take a chunk of 8 bytes into E0
 	C2P                   (a0)+,E1 ; take a chunk of 8 bytes into E1
@@ -494,7 +686,6 @@ c2ploop:
 	VPERM                 #$02468ACE,d0,d4,e3 ;BPL3
 
 	VPERM                 #$13579BDF,d3,d7,e4 ; BPL5
-  
 
 	; store data into actual bitplanes
 	store                 e0,(a1)+
@@ -630,8 +821,8 @@ chunkyremaploop: ; for each pixel
 	move.l				a5,TRANS_IMG_WRITE_PTR
 
 	rts
-	; ---------------- CODE TO TEST !!!! -----------------------------
 
+SEGNALEAUDIOCOUNTER: dc.w SEGNALEAUDIOLIMIT
 AUDIOCOUNTER:	dc.l 0
 
 VblHandler:
@@ -688,6 +879,30 @@ AudioHandler:
 	movem.l	(sp)+,D0-D2/A0-A2
 	rte
 
+SEGNALEORARIOCOLORS:
+	include 			  "segnaleorario/frames/cropped2/1cropped.col"
+	include 			  "segnaleorario/frames/cropped2/2cropped.col"
+	include 			  "segnaleorario/frames/cropped2/3cropped.col"
+	include 			  "segnaleorario/frames/cropped2/4cropped.col"
+	include 			  "segnaleorario/frames/cropped2/5cropped.col"
+	include 			  "segnaleorario/frames/cropped2/6cropped.col"
+	include 			  "segnaleorario/frames/cropped2/7cropped.col"
+	include 			  "segnaleorario/frames/cropped2/8cropped.col"
+	include 			  "segnaleorario/frames/cropped2/9cropped.col"
+	include 			  "segnaleorario/frames/cropped2/10cropped.col"
+	include 			  "segnaleorario/frames/cropped2/11cropped.col"
+	include 			  "segnaleorario/frames/cropped2/12cropped.col"
+	include 			  "segnaleorario/frames/cropped2/13cropped.col"
+	include 			  "segnaleorario/frames/cropped2/14cropped.col"
+	include 			  "segnaleorario/frames/cropped2/15cropped.col"
+	include 			  "segnaleorario/frames/cropped2/16cropped.col"
+	include 			  "segnaleorario/frames/cropped2/17cropped.col"
+	include 			  "segnaleorario/frames/cropped2/18cropped.col"
+	include 			  "segnaleorario/frames/cropped2/19cropped.col"
+	include 			  "segnaleorario/frames/cropped2/20cropped.col"
+	include 			  "segnaleorario/frames/cropped2/21cropped.col"
+	include 			  "segnaleorario/frames/cropped2/22cropped.col"
+
 CHUNKY_IMAGE:
 	incbin 				  "images/pennabilli.data" ; 320*256 indexed chunky image here
 	include 			  "images/pennabilli.col" ; color copperlist here
@@ -710,8 +925,9 @@ Audioticktock dc.b 0
 currentImage:			  dc.l IMAGES : pointer to the current image
 TRANS_IMG_WRITE_PTR:	  dc.l CHUNKY_TRANSITION_START
 TRANS_COL_WRITE_PTR:	  dc.l CHUNKY_COLORS_START
-TRANS_IMG_READ_PTR:		  dc.l CHUNKY_IMAGE
+TRANS_IMG_READ_PTR:		  dc.l SEGNALEORARIO ;dc.l CHUNKY_IMAGE
 TRANS_COL_READ_PTR:		  dc.l CHUNKY_COLORS_START
+SEGNALE_ORARIO_COLORS_PTR:		  dc.l SEGNALEORARIOCOLORS
 
 IMAGES:
 PENNABILLI:
@@ -744,12 +960,44 @@ SANMARINO:		  		  incbin 				  "images/sanmarino.data" ; sanmarino
 
 IMAGES_END:
 
+SEGNALEORARIO:
+SEGNALEORARIO1:			  incbin				  "segnaleorario/frames/cropped2/1cropped.data"
+SEGNALEORARIO1_1:		  incbin				  "segnaleorario/frames/cropped2/1cropped.data"
+SEGNALEORARIO2:			  incbin				  "segnaleorario/frames/cropped2/2cropped.data"
+SEGNALEORARIO3:			  incbin				  "segnaleorario/frames/cropped2/3cropped.data"
+SEGNALEORARIO4:			  incbin				  "segnaleorario/frames/cropped2/4cropped.data"
+SEGNALEORARIO5:			  incbin				  "segnaleorario/frames/cropped2/5cropped.data"
+SEGNALEORARIO6:			  incbin				  "segnaleorario/frames/cropped2/6cropped.data"
+SEGNALEORARIO7:			  incbin				  "segnaleorario/frames/cropped2/7cropped.data"
+SEGNALEORARIO8:			  incbin				  "segnaleorario/frames/cropped2/8cropped.data"
+SEGNALEORARIO9:			  incbin				  "segnaleorario/frames/cropped2/9cropped.data"
+SEGNALEORARIO10:		  incbin				  "segnaleorario/frames/cropped2/10cropped.data"
+SEGNALEORARIO11:		  incbin				  "segnaleorario/frames/cropped2/11cropped.data"
+SEGNALEORARIO12:		  incbin				  "segnaleorario/frames/cropped2/12cropped.data"
+SEGNALEORARIO13:		  incbin				  "segnaleorario/frames/cropped2/13cropped.data"
+SEGNALEORARIO14:		  incbin				  "segnaleorario/frames/cropped2/14cropped.data"
+SEGNALEORARIO15:		  incbin				  "segnaleorario/frames/cropped2/15cropped.data"
+SEGNALEORARIO16:		  incbin				  "segnaleorario/frames/cropped2/16cropped.data"
+SEGNALEORARIO17:		  incbin				  "segnaleorario/frames/cropped2/17cropped.data"
+SEGNALEORARIO18:		  incbin				  "segnaleorario/frames/cropped2/18cropped.data"
+SEGNALEORARIO19:		  incbin				  "segnaleorario/frames/cropped2/19cropped.data"
+SEGNALEORARIO20:		  incbin				  "segnaleorario/frames/cropped2/20cropped.data"
+SEGNALEORARIO21:		  incbin				  "segnaleorario/frames/cropped2/21cropped.data"
+;SEGNALEORARIO22:		  incbin				  "segnaleorario/frames/cropped2/22cropped.data"
+SEGNALEORARIOEND:
+
+
 	section	musiT,DATA_F
 musiT
 	IFND COLORDEBUG1
 	incbin										  "music/intervallo.aiff"
 	ENDC
 musiT_e
+musiS
+	IFND COLORDEBUG1
+	incbin										  "music/segnaleorario.aiff"
+	ENDC
+musiS_e
 
     SECTION GRAPHICS,DATA_C
 

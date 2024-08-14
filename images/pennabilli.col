@@ -1,3 +1,4 @@
+PENNABILLI4BYTECOL:
     dc.w $180,$112 ; Color 0
     dc.w $182,$121 ; Color 1
     dc.w $184,$234 ; Color 2

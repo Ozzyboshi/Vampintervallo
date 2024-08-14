@@ -82,7 +82,7 @@ BPLPTR5:
   ; COLORS
 COLORS:
   ;dcb.l  32,0
-  include 			  "images/pennabilli.col"
+  include 			  "./segnaleorario/frames/cropped2/13cropped.col"
 
 	dc.w	$FFFF,$FFFE	; Fine della copperlist
 
