@@ -225,7 +225,7 @@ nofade:
 	bra.w 				mousesegnaleorario
 segnaleorariocodeend:
 
-	move.w #20-1,d0
+	move.w #50*3-1,d0
 	jsr 				WAITSECONDS
 
 	; START OF INTERVALLO GAMELOOP
@@ -995,7 +995,7 @@ musiT
 musiT_e
 musiS
 	IFND COLORDEBUG1
-	incbin										  "music/segnaleorario.aiff"
+	incbin										  "music/segnaleorario3.aiff"
 	ENDC
 musiS_e
 
